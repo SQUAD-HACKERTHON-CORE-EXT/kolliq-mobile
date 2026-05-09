@@ -1,0 +1,272 @@
+import React from 'react';
+import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
+import { Card } from '../../components/ui/Card';
+import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout';
+import { SectionHeader } from '../../components/ui/SectionHeader';
+import { WalletCard } from '../../components/ui/WalletCard';
+import { formatCurrency } from '../../utils/formatCurrency';
+
+const NAV_TABS = [
+  { id: 'EmployerHome', label: 'Dashboard', icon: 'apps-outline', activeIcon: 'apps' },
+  { id: 'workers', label: 'Workers', icon: 'people-outline' },
+  { id: 'wallet', label: 'Wallet', icon: 'wallet-outline' },
+  { id: 'profile', label: 'Profile', icon: 'person-outline' },
+] as const;
+
+export default function DashboardScreen({ navigation }: any) {
+  return (
+    <SafeAreaView style={styles.container}>
+      <DashboardHeader 
+        userName="Alhaji Musa Stores" 
+        greeting="Employer Dashboard"
+        onNotificationPress={() => {}} 
+        onProfilePress={() => navigation.navigate('profile')}
+      />
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Post Job Hero */}
+        <TouchableOpacity activeOpacity={0.9} style={styles.heroButton}>
+          <Card background={COLORS.primary} style={styles.heroCard}>
+            <View style={styles.heroIconContainer}>
+              <Ionicons name="add" size={32} color={COLORS.primaryLight} />
+            </View>
+            <View>
+              <Text style={styles.heroTitle}>Post a New Job</Text>
+              <Text style={styles.heroSubtitle}>Find reliable workers instantly</Text>
+            </View>
+          </Card>
+        </TouchableOpacity>
+
+        <View style={styles.section}>
+          <WalletCard 
+            balance={formatCurrency(120500)}
+            accountNumber="1234567890"
+            onAddMoney={() => {}}
+            onSend={() => {}}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader 
+            title="Active Postings" 
+            onViewAll={() => {}} 
+          />
+          <JobPostingCard 
+            title="Store Assistants Needed"
+            posted="Posted 2h ago"
+            applicants={3}
+            onPress={() => {}}
+          />
+          <JobPostingCard 
+            title="Market Logistics"
+            posted="Posted yesterday"
+            applicants={0}
+            onPress={() => {}}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader 
+            title="Recent Hires" 
+            onViewAll={() => {}} 
+          />
+          <RecentHireCard 
+            name="Chidi Okonkwo"
+            rating={4.8}
+            role="Delivery"
+            amount="₦4,000"
+            status="Completed"
+          />
+          <RecentHireCard 
+            name="Ngozi Eze"
+            rating={4.5}
+            role="Cleaning"
+            amount="₦3,500"
+            status="Completed"
+          />
+        </View>
+      </ScrollView>
+
+      <BottomNav 
+        activeTab="EmployerHome" 
+        onTabPress={(tab) => navigation.navigate(tab)} 
+        tabs={NAV_TABS as any}
+      />
+    </SafeAreaView>
+  );
+}
+
+const JobPostingCard = ({ title, posted, applicants, onPress }: any) => (
+  <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
+    <Card variant="outline" style={styles.jobCard}>
+      <View style={styles.jobIconPlaceholder} />
+      <View style={styles.jobTextContainer}>
+        <Text style={styles.jobTitle}>{title}</Text>
+        <Text style={styles.jobSubtitle}>{posted} • {applicants} Applicants</Text>
+      </View>
+    </Card>
+  </TouchableOpacity>
+);
+
+const RecentHireCard = ({ name, rating, role, amount, status }: any) => (
+  <Card variant="outline" style={styles.hireCard}>
+    <View style={styles.hireTop}>
+      <View style={styles.hireInfo}>
+        <View style={styles.hireAvatar} />
+        <View style={styles.hireMeta}>
+          <Text style={styles.hireName}>{name}</Text>
+          <Text style={styles.hireSub}>{rating} Worker Rating</Text>
+        </View>
+      </View>
+      <View style={styles.statusBadge}>
+        <Text style={styles.statusText}>{status}</Text>
+      </View>
+    </View>
+    <View style={styles.hireDivider} />
+    <View style={styles.hireBottom}>
+      <Text style={styles.hireBottomText}>Role: {role}</Text>
+      <Text style={styles.hireBottomText}>Paid: <Text style={styles.boldText}>{amount}</Text> via Escrow</Text>
+    </View>
+  </Card>
+);
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    paddingHorizontal: LAYOUT.paddingHorizontal,
+    paddingBottom: 100,
+  },
+  heroButton: {
+    marginTop: SPACING.md,
+  },
+  heroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.xl,
+  },
+  heroIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.lg,
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontFamily: FONTS.family,
+    fontWeight: FONTS.weights.bold as any,
+    color: COLORS.white,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    fontFamily: FONTS.family,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
+  },
+  section: {
+    marginTop: SPACING['2xl'],
+  },
+  jobCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+    padding: SPACING.lg,
+  },
+  jobIconPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFF1F1',
+    marginRight: SPACING.md,
+  },
+  jobTextContainer: {
+    flex: 1,
+  },
+  jobTitle: {
+    fontSize: 16,
+    fontFamily: FONTS.family,
+    fontWeight: FONTS.weights.bold as any,
+    color: COLORS.text,
+  },
+  jobSubtitle: {
+    fontSize: 13,
+    fontFamily: FONTS.family,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  hireCard: {
+    marginBottom: SPACING.md,
+    padding: SPACING.lg,
+  },
+  hireTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  hireInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  hireAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surfaceAlt,
+    marginRight: SPACING.md,
+  },
+  hireMeta: {
+    justifyContent: 'center',
+  },
+  hireName: {
+    fontSize: 16,
+    fontFamily: FONTS.family,
+    fontWeight: FONTS.weights.bold as any,
+    color: COLORS.text,
+  },
+  hireSub: {
+    fontSize: 12,
+    fontFamily: FONTS.family,
+    color: COLORS.textSecondary,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+  },
+  statusText: {
+    fontSize: 12,
+    fontFamily: FONTS.family,
+    fontWeight: FONTS.weights.bold as any,
+    color: '#166534',
+  },
+  hireDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: SPACING.md,
+  },
+  hireBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  hireBottomText: {
+    fontSize: 13,
+    fontFamily: FONTS.family,
+    color: COLORS.textSecondary,
+  },
+  boldText: {
+    fontWeight: FONTS.weights.bold as any,
+    color: COLORS.text,
+  },
+});
+

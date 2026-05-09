@@ -1,21 +1,22 @@
 import React from 'react';
-import { StyleSheet, View, ViewProps } from 'react-native';
-import { COLORS, SPACING, BORDER_RADIUS } from '../../constants';
+import { StyleSheet, View, ViewProps, ViewStyle, StyleProp } from 'react-native';
+import { COLORS, BORDER_RADIUS, LAYOUT } from '../../constants';
 
 interface CardProps extends ViewProps {
   children: React.ReactNode;
   padding?: number;
   borderRadius?: number;
-  shadow?: boolean;
+  variant?: 'elevated' | 'outline' | 'flat';
   background?: string;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const Card: React.FC<CardProps> = ({
   children,
-  padding = SPACING.lg,
-  borderRadius = BORDER_RADIUS.md,
-  shadow = true,
-  background = COLORS.white,
+  padding = 16,
+  borderRadius = BORDER_RADIUS.card,
+  variant = 'elevated',
+  background = COLORS.surface,
   style,
   ...props
 }) => {
@@ -28,7 +29,8 @@ export const Card: React.FC<CardProps> = ({
           borderRadius,
           backgroundColor: background,
         },
-        shadow && styles.shadow,
+        variant === 'elevated' && styles.elevated,
+        variant === 'outline' && styles.outline,
         style,
       ]}
       {...props}
@@ -40,14 +42,18 @@ export const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.white,
+    overflow: 'hidden',
   },
-  shadow: {
+  elevated: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  outline: {
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
   },
 });
+
