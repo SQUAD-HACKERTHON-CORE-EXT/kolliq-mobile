@@ -5,15 +5,22 @@ export interface User {
   id: string;
   phoneNumber: string;
   role?: UserRole;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
+  businessName?: string;
+  tradeName?: string;
   location?: string;
+  businessLocation?: string;
+  marketLocation?: string;
   skills?: string[];
-  languages?: string[];
-  hasVehicle?: boolean;
-  availability?: string;
+  categories?: string[];
+  weeklyEarnings?: string;
+  hireFrequency?: string;
+  profilePhoto?: string;
   economicIdentityScore?: number;
   walletBalance?: number;
   walletAccountNumber?: string;
+  walletBankName?: string;
   createdAt?: string;
   bvnVerified?: boolean;
 }

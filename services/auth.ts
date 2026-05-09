@@ -1,55 +1,19 @@
-import axios, { AxiosInstance } from 'axios';
+import api from './api';
 import * as SecureStore from 'expo-secure-store';
-import { API_CONFIG } from '../constants';
 import { User, ApiResponse, OtpResponse, LoginResponse } from '../types';
 
 class AuthService {
-  private api: AxiosInstance;
   private token: string | null = null;
-
-  constructor() {
-    this.api = axios.create({
-      baseURL: API_CONFIG.BASE_URL,
-      timeout: API_CONFIG.TIMEOUT,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Add token to requests
-    this.api.interceptors.request.use(async (config) => {
-      const token = await this.getToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
-
-    // Handle response errors
-    this.api.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          this.logout();
-        }
-        return Promise.reject(error);
-      }
-    );
-  }
 
   /**
    * Request OTP for phone number
    */
   async requestOtp(phoneNumber: string): Promise<OtpResponse> {
-    try {
-      const response = await this.api.post<ApiResponse<OtpResponse>>(
-        '/auth/request-otp',
-        { phoneNumber: this.normalizePhoneNumber(phoneNumber) }
-      );
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.post<ApiResponse<OtpResponse>>(
+      '/auth/request-otp',
+      { phoneNumber: this.normalizePhoneNumber(phoneNumber) }
+    );
+    return response.data.data!;
   }
 
   /**
@@ -60,26 +24,22 @@ class AuthService {
     otp: string,
     sessionId: string
   ): Promise<LoginResponse> {
-    try {
-      const response = await this.api.post<ApiResponse<LoginResponse>>(
-        '/auth/verify-otp',
-        {
-          phoneNumber: this.normalizePhoneNumber(phoneNumber),
-          otp,
-          sessionId,
-        }
-      );
+    const response = await api.post<ApiResponse<LoginResponse>>(
+      '/auth/verify-otp',
+      {
+        phoneNumber: this.normalizePhoneNumber(phoneNumber),
+        otp,
+        sessionId,
+      }
+    );
 
-      const { token, user, wallet } = response.data.data!;
+    const { token, user, wallet } = response.data.data!;
 
-      // Store token securely
-      await SecureStore.setItemAsync('authToken', token);
-      this.token = token;
+    // Store token securely
+    await SecureStore.setItemAsync('authToken', token);
+    this.token = token;
 
-      return { token, user, wallet };
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    return { token, user, wallet };
   }
 
   /**
@@ -94,59 +54,43 @@ class AuthService {
     availability: string;
     role: 'jobseeker' | 'trader' | 'employer';
   }): Promise<User> {
-    try {
-      const response = await this.api.post<ApiResponse<User>>(
-        '/auth/onboarding',
-        data
-      );
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.post<ApiResponse<User>>(
+      '/auth/onboarding',
+      data
+    );
+    return response.data.data!;
   }
 
   /**
    * Refresh authentication token
    */
   async refreshToken(): Promise<string> {
-    try {
-      const response = await this.api.post<ApiResponse<{ token: string }>>(
-        '/auth/refresh'
-      );
-      const token = response.data.data!.token;
-      await SecureStore.setItemAsync('authToken', token);
-      this.token = token;
-      return token;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.post<ApiResponse<{ token: string }>>(
+      '/auth/refresh'
+    );
+    const token = response.data.data!.token;
+    await SecureStore.setItemAsync('authToken', token);
+    this.token = token;
+    return token;
   }
 
   /**
    * Update user profile
    */
   async updateProfile(updates: Partial<User>): Promise<User> {
-    try {
-      const response = await this.api.put<ApiResponse<User>>(
-        '/user/profile',
-        updates
-      );
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.put<ApiResponse<User>>(
+      '/user/profile',
+      updates
+    );
+    return response.data.data!;
   }
 
   /**
    * Get current user
    */
   async getCurrentUser(): Promise<User> {
-    try {
-      const response = await this.api.get<ApiResponse<User>>('/user/profile');
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.get<ApiResponse<User>>('/user/profile');
+    return response.data.data!;
   }
 
   /**
@@ -191,20 +135,6 @@ class AuthService {
     }
 
     return `+${cleaned}`;
-  }
-
-  /**
-   * Handle API errors
-   */
-  private handleError(error: any): Error {
-    if (axios.isAxiosError(error)) {
-      const message =
-        error.response?.data?.error ||
-        error.message ||
-        'An error occurred. Please try again.';
-      return new Error(message);
-    }
-    return error;
   }
 }
 

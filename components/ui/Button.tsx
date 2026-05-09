@@ -1,16 +1,17 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../../constants';
+import { StyleSheet, Text, TouchableOpacity, ActivityIndicator, ViewStyle, StyleProp } from 'react-native';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
   icon?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -22,38 +23,41 @@ export const Button: React.FC<ButtonProps> = ({
   loading = false,
   fullWidth = false,
   icon,
+  style,
 }) => {
   const isDisabled = disabled || loading;
+
+  const buttonStyles = [
+    styles.button,
+    styles[`button_${variant}`],
+    styles[`button_${size}`],
+    isDisabled && styles.buttonDisabled,
+    fullWidth && styles.buttonFullWidth,
+    style,
+  ];
+
+  const textStyles = [
+    styles.text,
+    styles[`text_${variant}`],
+    styles[`text_${size}`],
+  ];
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={isDisabled}
       activeOpacity={0.7}
-      style={[
-        styles.button,
-        styles[`button_${variant}`],
-        styles[`button_${size}`],
-        isDisabled && styles.buttonDisabled,
-        fullWidth && styles.buttonFullWidth,
-      ]}
+      style={buttonStyles}
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'outline' ? COLORS.primary : COLORS.white}
+          color={variant === 'outline' || variant === 'ghost' ? COLORS.primary : COLORS.white}
           size="small"
         />
       ) : (
         <>
-          {icon && <Text style={styles.icon}>{icon}</Text>}
-          <Text
-            style={[
-              styles.text,
-              styles[`text_${variant}`],
-              styles[`text_${size}`],
-            ]}
-            allowFontScaling={false}
-          >
+          {icon && icon}
+          <Text style={textStyles} allowFontScaling={false}>
             {title}
           </Text>
         </>
@@ -67,44 +71,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.button,
     paddingHorizontal: SPACING.lg,
   },
   button_primary: {
     backgroundColor: COLORS.primary,
   },
   button_secondary: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: COLORS.accent,
   },
   button_outline: {
     backgroundColor: 'transparent',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: COLORS.primary,
   },
   button_danger: {
     backgroundColor: COLORS.error,
   },
+  button_ghost: {
+    backgroundColor: 'transparent',
+  },
   button_sm: {
-    paddingVertical: SPACING.sm,
+    height: 36,
     paddingHorizontal: SPACING.md,
   },
   button_md: {
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
+    height: 48,
+    paddingHorizontal: SPACING.xl,
   },
   button_lg: {
-    paddingVertical: SPACING.lg,
+    height: LAYOUT.buttonHeight,
     paddingHorizontal: SPACING['2xl'],
   },
   buttonDisabled: {
-    opacity: 0.5,
+    backgroundColor: COLORS.inactive,
   },
   buttonFullWidth: {
     width: '100%',
   },
   text: {
-    fontWeight: FONTS.weights.semibold as any,
+    fontFamily: FONTS.weights.semibold,
+    textAlign: 'center',
   },
   text_primary: {
     color: COLORS.white,
@@ -118,16 +125,17 @@ const styles = StyleSheet.create({
   text_danger: {
     color: COLORS.white,
   },
+  text_ghost: {
+    color: COLORS.text,
+  },
   text_sm: {
-    fontSize: FONTS.sizes.sm,
+    fontSize: FONTS.sizes.small,
   },
   text_md: {
-    fontSize: FONTS.sizes.base,
+    fontSize: FONTS.sizes.body,
   },
   text_lg: {
-    fontSize: FONTS.sizes.lg,
-  },
-  icon: {
-    marginRight: SPACING.sm,
+    fontSize: FONTS.sizes.body,
   },
 });
+

@@ -1,5 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
-import { API_CONFIG } from '../constants';
+import api from './api';
 import { ApiResponse } from '../types';
 
 interface ScoreFactors {
@@ -20,44 +19,25 @@ interface EconomicIdentityScore {
 }
 
 class AIService {
-  private api: AxiosInstance;
-
-  constructor() {
-    this.api = axios.create({
-      baseURL: `${API_CONFIG.BASE_URL}/ai`,
-      timeout: API_CONFIG.TIMEOUT,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  }
-
   /**
    * Calculate Economic Identity Score
    */
   async calculateEIS(userId: string): Promise<EconomicIdentityScore> {
-    try {
-      const response = await this.api.post<
-        ApiResponse<EconomicIdentityScore>
-      >('/eis/calculate', { userId });
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.post<ApiResponse<EconomicIdentityScore>>(
+      '/ai/eis/calculate',
+      { userId }
+    );
+    return response.data.data!;
   }
 
   /**
    * Get EIS score details
    */
   async getEISDetails(userId: string): Promise<EconomicIdentityScore> {
-    try {
-      const response = await this.api.get<ApiResponse<EconomicIdentityScore>>(
-        `/eis/${userId}`
-      );
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.get<ApiResponse<EconomicIdentityScore>>(
+      `/ai/eis/${userId}`
+    );
+    return response.data.data!;
   }
 
   /**
@@ -68,18 +48,14 @@ class AIService {
     estimatedDays: number;
     requiredActions: string[];
   }> {
-    try {
-      const response = await this.api.get<
-        ApiResponse<{
-          nextScore: number;
-          estimatedDays: number;
-          requiredActions: string[];
-        }>
-      >(`/eis/${userId}/next-milestone`);
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.get<
+      ApiResponse<{
+        nextScore: number;
+        estimatedDays: number;
+        requiredActions: string[];
+      }>
+    >(`/ai/eis/${userId}/next-milestone`);
+    return response.data.data!;
   }
 
   /**
@@ -95,22 +71,18 @@ class AIService {
       matchReasons: string[];
     }>
   > {
-    try {
-      const response = await this.api.get<
-        ApiResponse<
-          Array<{
-            jobId: string;
-            matchScore: number;
-            matchReasons: string[];
-          }>
-        >
-      >(`/recommend/jobs/${userId}`, {
-        params: { limit },
-      });
-      return response.data.data || [];
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.get<
+      ApiResponse<
+        Array<{
+          jobId: string;
+          matchScore: number;
+          matchReasons: string[];
+        }>
+      >
+    >(`/ai/recommend/jobs/${userId}`, {
+      params: { limit },
+    });
+    return response.data.data || [];
   }
 
   /**
@@ -121,18 +93,14 @@ class AIService {
     riskLevel: 'low' | 'medium' | 'high';
     flags: string[];
   }> {
-    try {
-      const response = await this.api.post<
-        ApiResponse<{
-          isFraudulent: boolean;
-          riskLevel: 'low' | 'medium' | 'high';
-          flags: string[];
-        }>
-      >('/fraud/detect', { userId });
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.post<
+      ApiResponse<{
+        isFraudulent: boolean;
+        riskLevel: 'low' | 'medium' | 'high';
+        flags: string[];
+      }>
+    >('/ai/fraud/detect', { userId });
+    return response.data.data!;
   }
 
   /**
@@ -146,21 +114,17 @@ class AIService {
     activeInsuranceCount: number;
     trustScore: number;
   }> {
-    try {
-      const response = await this.api.get<
-        ApiResponse<{
-          totalTransactions: number;
-          averageMonthlyActivity: number;
-          totalSaved: number;
-          activeLoanCount: number;
-          activeInsuranceCount: number;
-          trustScore: number;
-        }>
-      >(`/profile/${userId}/financial`);
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.get<
+      ApiResponse<{
+        totalTransactions: number;
+        averageMonthlyActivity: number;
+        totalSaved: number;
+        activeLoanCount: number;
+        activeInsuranceCount: number;
+        trustScore: number;
+      }>
+    >(`/ai/profile/${userId}/financial`);
+    return response.data.data!;
   }
 
   /**
@@ -171,18 +135,14 @@ class AIService {
     recommendedSkillsToAdd: string[];
     marketDemand: Record<string, number>;
   }> {
-    try {
-      const response = await this.api.post<
-        ApiResponse<{
-          topSkills: string[];
-          recommendedSkillsToAdd: string[];
-          marketDemand: Record<string, number>;
-        }>
-      >('/skills/analyze', { skills });
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.post<
+      ApiResponse<{
+        topSkills: string[];
+        recommendedSkillsToAdd: string[];
+        marketDemand: Record<string, number>;
+      }>
+    >('/ai/skills/analyze', { skills });
+    return response.data.data!;
   }
 
   /**
@@ -196,21 +156,17 @@ class AIService {
     currentScore: number;
     daysUntilEligible?: number;
   }> {
-    try {
-      const response = await this.api.post<
-        ApiResponse<{
-          isEligible: boolean;
-          maxAmount: number;
-          interestRate: number;
-          requiredScore: number;
-          currentScore: number;
-          daysUntilEligible?: number;
-        }>
-      >('/eligibility/loan', { userId });
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.post<
+      ApiResponse<{
+        isEligible: boolean;
+        maxAmount: number;
+        interestRate: number;
+        requiredScore: number;
+        currentScore: number;
+        daysUntilEligible?: number;
+      }>
+    >('/ai/eligibility/loan', { userId });
+    return response.data.data!;
   }
 
   /**
@@ -227,24 +183,20 @@ class AIService {
     currentScore: number;
     daysUntilEligible?: number;
   }> {
-    try {
-      const response = await this.api.post<
-        ApiResponse<{
-          isEligible: boolean;
-          availablePlans: Array<{
-            type: 'trade' | 'health' | 'income';
-            monthlyPremium: number;
-            coverage: number;
-          }>;
-          requiredScore: number;
-          currentScore: number;
-          daysUntilEligible?: number;
-        }>
-      >('/eligibility/insurance', { userId });
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
+    const response = await api.post<
+      ApiResponse<{
+        isEligible: boolean;
+        availablePlans: Array<{
+          type: 'trade' | 'health' | 'income';
+          monthlyPremium: number;
+          coverage: number;
+        }>;
+        requiredScore: number;
+        currentScore: number;
+        daysUntilEligible?: number;
+      }>
+    >('/ai/eligibility/insurance', { userId });
+    return response.data.data!;
   }
 
   /**
@@ -257,34 +209,16 @@ class AIService {
     consistencyScore: number; // 0-100
     trends: 'increasing' | 'stable' | 'decreasing';
   }> {
-    try {
-      const response = await this.api.get<
-        ApiResponse<{
-          averageTransactionAmount: number;
-          transactionFrequency: string;
-          peakHours: string[];
-          consistencyScore: number;
-          trends: 'increasing' | 'stable' | 'decreasing';
-        }>
-      >(`/analysis/transactions/${userId}`);
-      return response.data.data!;
-    } catch (error) {
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Handle API errors
-   */
-  private handleError(error: any): Error {
-    if (axios.isAxiosError(error)) {
-      const message =
-        error.response?.data?.error ||
-        error.message ||
-        'AI calculation failed. Please try again.';
-      return new Error(message);
-    }
-    return error;
+    const response = await api.get<
+      ApiResponse<{
+        averageTransactionAmount: number;
+        transactionFrequency: string;
+        peakHours: string[];
+        consistencyScore: number;
+        trends: 'increasing' | 'stable' | 'decreasing';
+      }>
+    >(`/ai/analysis/transactions/${userId}`);
+    return response.data.data!;
   }
 }
 
