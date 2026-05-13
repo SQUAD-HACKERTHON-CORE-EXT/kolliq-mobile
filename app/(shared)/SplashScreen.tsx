@@ -115,8 +115,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 48,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
     letterSpacing: -2,
   },
@@ -131,8 +130,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.primary,
     letterSpacing: 1.2,
   },

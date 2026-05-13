@@ -27,7 +27,7 @@ export const useAuthStore = create<AuthStore>()(
 
       updateUser: (updates) =>
         set((state) => ({
-          user: state.user ? { ...state.user, ...updates } : null,
+          user: state.user ? { ...state.user, ...updates } : (updates as User),
         })),
 
       logout: () =>

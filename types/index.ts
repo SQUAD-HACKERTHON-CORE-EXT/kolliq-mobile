@@ -16,6 +16,18 @@ export interface User {
   categories?: string[];
   weeklyEarnings?: string;
   hireFrequency?: string;
+  availability?: string[];
+  transport?: string;
+  workRadius?: string;
+  experienceLevel?: string;
+  tradeTenure?: string;
+  paymentMethod?: string;
+  businessType?: string;
+  hiringFrequency?: string;
+  cacReg?: string;
+  payRange?: string;
+  teamSize?: string;
+  cacNumber?: string;
   profilePhoto?: string;
   economicIdentityScore?: number;
   walletBalance?: number;

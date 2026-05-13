@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { Button } from '../../components/ui/Button';
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   matchBadge: {
-    backgroundColor: COLORS.badgePurple,
+    backgroundColor: COLORS.badgeGreen,
     paddingHorizontal: SPACING.md,
     paddingVertical: 6,
     borderRadius: BORDER_RADIUS.full,
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: COLORS.primary,
     borderWidth: 4,
-    borderColor: 'rgba(123, 120, 170, 0.3)',
+    borderColor: 'rgba(27, 77, 62, 0.2)',
   },
   mapAddress: {
     backgroundColor: COLORS.surface,

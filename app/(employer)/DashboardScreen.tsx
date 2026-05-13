@@ -1,17 +1,18 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { Card } from '../../components/ui/Card';
 import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { WalletCard } from '../../components/ui/WalletCard';
-import { formatCurrency } from '../../utils/formatCurrency';
+import { formatCurrency, formatNumber } from '../../utils/formatCurrency';
 
 const NAV_TABS = [
   { id: 'EmployerHome', label: 'Dashboard', icon: 'apps-outline', activeIcon: 'apps' },
   { id: 'workers', label: 'Workers', icon: 'people-outline' },
-  { id: 'wallet', label: 'Wallet', icon: 'wallet-outline' },
+  { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline' },
   { id: 'profile', label: 'Profile', icon: 'person-outline' },
 ] as const;
 
@@ -41,11 +42,17 @@ export default function DashboardScreen({ navigation }: any) {
 
         <View style={styles.section}>
           <WalletCard 
-            balance={formatCurrency(120500)}
-            accountNumber="1234567890"
-            onAddMoney={() => {}}
-            onSend={() => {}}
-          />
+            title="Escrow Wallet Balance"
+            balance={formatNumber(120500)}
+            primaryActionTitle="+ Fund Escrow"
+            secondaryActionTitle="History"
+            onPrimaryAction={() => {}}
+            onSecondaryAction={() => {}}
+          >
+            <Text style={styles.escrowDisclaimer}>
+              Funds held securely in Squad escrow until job is confirmed complete
+            </Text>
+          </WalletCard>
         </View>
 
         <View style={styles.section}>
@@ -69,7 +76,7 @@ export default function DashboardScreen({ navigation }: any) {
 
         <View style={styles.section}>
           <SectionHeader 
-            title="Recent Hires" 
+            title="Top Rated Workers in your area" 
             onViewAll={() => {}} 
           />
           <RecentHireCard 
@@ -120,14 +127,14 @@ const RecentHireCard = ({ name, rating, role, amount, status }: any) => (
           <Text style={styles.hireSub}>{rating} Worker Rating</Text>
         </View>
       </View>
-      <View style={styles.statusBadge}>
-        <Text style={styles.statusText}>{status}</Text>
+      <View style={styles.hireBadge}>
+        <Text style={styles.hireText}>Hire</Text>
       </View>
     </View>
     <View style={styles.hireDivider} />
     <View style={styles.hireBottom}>
-      <Text style={styles.hireBottomText}>Role: {role}</Text>
-      <Text style={styles.hireBottomText}>Paid: <Text style={styles.boldText}>{amount}</Text> via Escrow</Text>
+      <Text style={styles.hireBottomText}>{role}</Text>
+      <Text style={styles.hireBottomText}>EIS Score: <Text style={styles.boldText}>450</Text></Text>
     </View>
   </Card>
 );
@@ -160,8 +167,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 20,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.white,
   },
   heroSubtitle: {
@@ -191,8 +197,7 @@ const styles = StyleSheet.create({
   },
   jobTitle: {
     fontSize: 16,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   jobSubtitle: {
@@ -226,8 +231,7 @@ const styles = StyleSheet.create({
   },
   hireName: {
     fontSize: 16,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   hireSub: {
@@ -235,19 +239,23 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.family,
     color: COLORS.textSecondary,
   },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  hireBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#DCFCE7',
+    backgroundColor: COLORS.primary,
   },
-  statusText: {
+  hireText: {
     fontSize: 12,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
-    color: '#166534',
+    fontFamily: FONTS.weights.bold,
+    color: COLORS.white,
+  },
+  escrowDisclaimer: {
+    fontSize: 11,
+    fontFamily: FONTS.weights.regular,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: 12,
   },
   hireDivider: {
     height: 1,
@@ -265,7 +273,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   boldText: {
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
 });

@@ -78,8 +78,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   employer: {
@@ -93,8 +92,7 @@ const styles = StyleSheet.create({
   },
   pay: {
     fontSize: 16,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   matchBadge: {
@@ -102,8 +100,7 @@ const styles = StyleSheet.create({
   },
   matchText: {
     fontSize: 12,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.medium as any,
+    fontFamily: FONTS.weights.medium,
     color: COLORS.primary,
   },
 });

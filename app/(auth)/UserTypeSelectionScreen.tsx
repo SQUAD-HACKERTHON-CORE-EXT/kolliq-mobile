@@ -257,8 +257,9 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: COLORS.white,
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: FONTS.weights.semibold,
+    paddingHorizontal: 8,
   },
 });
 

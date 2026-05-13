@@ -101,8 +101,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FONTS.sizes['2xl'],
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
     textAlign: 'center',
   },

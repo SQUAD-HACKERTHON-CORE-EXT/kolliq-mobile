@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout';
@@ -7,7 +8,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Card } from '../../components/ui/Card';
 import { WalletCard } from '../../components/ui/WalletCard';
 import { ScoreCard } from '../../components/ui/ScoreCard';
-import { formatCurrency } from '../../utils/formatCurrency';
+import { formatCurrency, formatNumber } from '../../utils/formatCurrency';
 
 const NAV_TABS = [
   { id: 'TraderHome', label: 'Home', icon: 'grid-outline', activeIcon: 'grid' },
@@ -39,19 +40,51 @@ export default function IdentityScreen({ navigation }: any) {
         </View>
 
         <WalletCard 
-          balance={formatCurrency(45200)}
-          accountNumber="1234567890"
-          onAddMoney={() => {}}
-          onSend={() => {}}
+          title="Available Balance"
+          balance={formatNumber(0)}
+          score={0}
+          primaryActionTitle="Receive"
+          secondaryActionTitle="Transfer"
+          onPrimaryAction={() => {}}
+          onSecondaryAction={() => {}}
         />
+
+        <View style={styles.quickActionRow}>
+          {['Send', 'Request', 'Scan QR', 'My QR'].map((action, i) => (
+            <TouchableOpacity key={i} style={styles.actionBtnContainer}>
+              <View style={styles.actionBtn}>
+                <Ionicons 
+                  name={i === 0 ? 'send' : i === 1 ? 'download' : i === 2 ? 'qr-code' : 'barcode'} 
+                  size={20} 
+                  color={COLORS.primary} 
+                />
+              </View>
+              <Text style={styles.actionBtnLabel}>{action}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={styles.section}>
           <ScoreCard 
-            score={55} 
-            tier="Tier 3: Loans Unlocked"
-            gigsCompleted={45}
-            ptsToNext={6}
+            score={0} 
+            tier="Starter Tier"
+            gigsCompleted={0}
+            ptsToNext={100}
           />
+        </View>
+
+        <View style={styles.loanCard}>
+          <Text style={styles.loanLabel}>Unlock Working Capital Loans</Text>
+          <Text style={styles.loanRequirement}>Process 50000 naira in payments to qualify for your first business loan</Text>
+          <View style={styles.loanProgressRow}>
+            <View style={styles.loanProgressBg}>
+              <View style={[styles.loanProgressFill, { width: '0%' }]} />
+            </View>
+          </View>
+          <View style={styles.loanAmounts}>
+            <Text style={styles.loanAmountText}>0</Text>
+            <Text style={styles.loanAmountText}>₦50,000</Text>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -146,12 +179,80 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   section: {
-    marginTop: SPACING['2xl'],
+    marginTop: SPACING.xl,
+  },
+  quickActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: SPACING.xl,
+    paddingHorizontal: SPACING.sm,
+  },
+  actionBtnContainer: {
+    alignItems: 'center',
+  },
+  actionBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: COLORS.badgeGreen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  actionBtnLabel: {
+    fontSize: 11,
+    fontFamily: FONTS.weights.medium,
+    color: COLORS.text,
+  },
+  loanCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginTop: SPACING.xl,
+  },
+  loanLabel: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontFamily: FONTS.weights.bold,
+    marginBottom: 4,
+  },
+  loanRequirement: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    fontFamily: FONTS.weights.regular,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  loanProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  loanProgressBg: {
+    flex: 1,
+    height: 6,
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: 3,
+  },
+  loanProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 3,
+  },
+  loanAmounts: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  loanAmountText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontFamily: FONTS.weights.medium,
   },
   chartCard: {
     padding: SPACING.xl,
@@ -164,8 +265,7 @@ const styles = StyleSheet.create({
   },
   chartTitle: {
     fontSize: 16,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   chartSubtitle: {
@@ -182,8 +282,7 @@ const styles = StyleSheet.create({
   },
   growthText: {
     fontSize: 12,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.secondary,
   },
   chartContainer: {
@@ -229,8 +328,7 @@ const styles = StyleSheet.create({
   },
   activityTitle: {
     fontSize: 15,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   activityDate: {
@@ -241,8 +339,7 @@ const styles = StyleSheet.create({
   },
   activityAmount: {
     fontSize: 15,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
   },
 });
 
