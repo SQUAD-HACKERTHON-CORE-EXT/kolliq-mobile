@@ -36,14 +36,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   viewAll: {
     fontSize: 14,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.semibold,
     color: COLORS.primary,
-    fontWeight: FONTS.weights.semibold as any,
   },
 });

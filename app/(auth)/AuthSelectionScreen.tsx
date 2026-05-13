@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 // Suppress missing type declarations in some environments
 // @ts-ignore: TS2307 - Cannot find module 'react-native' or its corresponding type declarations
-import { StyleSheet, View, Text, SafeAreaView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { Button } from '../../components/ui/Button';
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   boldText: {
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
   },
   divider: {
     width: 1,

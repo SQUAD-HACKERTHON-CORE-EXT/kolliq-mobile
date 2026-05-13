@@ -31,7 +31,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
 
       <View style={styles.scoreRow}>
         <Text style={styles.score}>{score}</Text>
-        <Text style={styles.maxScore}> / {maxScore}</Text>
+        <Text style={styles.maxScore}> / {maxScore} EIS Points</Text>
       </View>
 
       {/* Progress Bar */}
@@ -44,7 +44,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
       <View style={styles.footer}>
         <Text style={styles.footerText}>{gigsCompleted} Gigs Completed</Text>
         <Text style={[styles.footerText, { color: COLORS.secondary }]}>
-          {ptsToNext} pts to max tier
+          {ptsToNext} EIS Points to max tier
         </Text>
       </View>
     </Card>
@@ -64,13 +64,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.textMuted,
     letterSpacing: 0.5,
   },
   tierBadge: {
-    backgroundColor: COLORS.badgePurple,
+    backgroundColor: COLORS.badgeGreen,
     paddingHorizontal: SPACING.md,
     paddingVertical: 6,
     borderRadius: BORDER_RADIUS.full,
@@ -78,7 +77,7 @@ const styles = StyleSheet.create({
   tierText: {
     color: COLORS.primaryDark,
     fontSize: 12,
-    fontWeight: FONTS.weights.semibold as any,
+    fontFamily: FONTS.weights.semibold,
   },
   scoreRow: {
     flexDirection: 'row',
@@ -87,8 +86,7 @@ const styles = StyleSheet.create({
   },
   score: {
     fontSize: 56,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   maxScore: {
@@ -117,8 +115,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.medium as any,
+    fontFamily: FONTS.weights.medium,
     color: COLORS.textSecondary,
   },
 });

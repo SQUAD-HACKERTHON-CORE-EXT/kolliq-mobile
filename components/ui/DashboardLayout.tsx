@@ -23,7 +23,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={onProfilePress} style={styles.userProfile}>
-        <View style={styles.avatarPlaceholder} />
+        <View style={styles.avatarPlaceholder}>
+          {userName && <Text style={styles.avatarInitial}>{userName.charAt(0).toUpperCase()}</Text>}
+        </View>
         {userName && (
           <View style={styles.welcomeText}>
             <Text style={styles.greeting}>{greeting}</Text>
@@ -96,9 +98,16 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.surfaceAlt,
+    backgroundColor: COLORS.primary,
     borderWidth: 1.5,
     borderColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontFamily: FONTS.weights.bold,
   },
   welcomeText: {
     justifyContent: 'center',
@@ -111,8 +120,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   headerRight: {
@@ -162,13 +170,12 @@ const styles = StyleSheet.create({
   },
   navText: {
     fontSize: 11,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.medium as any,
+    fontFamily: FONTS.weights.medium,
     color: COLORS.textMuted,
   },
   activeNavText: {
     color: COLORS.primary,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
   },
 });
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, TextInput, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { Button } from '../../components/ui/Button';
@@ -300,9 +301,8 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.semibold,
     color: COLORS.textSecondary,
-    fontWeight: FONTS.weights.semibold as any,
   },
   scrollContent: {
     paddingBottom: SPACING.xl,
@@ -312,17 +312,17 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
     lineHeight: 40,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.regular,
     color: COLORS.textSecondary,
     lineHeight: 24,
+    paddingRight: 8,
   },
   photoContainer: {
     alignItems: 'center',
@@ -359,8 +359,7 @@ const styles = StyleSheet.create({
   },
   photoLabel: {
     fontSize: 14,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.semibold as any,
+    fontFamily: FONTS.weights.semibold,
     color: COLORS.text,
   },
   form: {
@@ -378,8 +377,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 14,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.semibold as any,
+    fontFamily: FONTS.weights.semibold,
     color: COLORS.text,
     marginBottom: SPACING.sm,
   },
@@ -390,7 +388,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.xl,
     paddingHorizontal: SPACING.lg,
     fontSize: 16,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.regular,
     color: COLORS.text,
     backgroundColor: COLORS.white,
   },
@@ -407,7 +405,7 @@ const styles = StyleSheet.create({
   inputNoBorder: {
     flex: 1,
     fontSize: 16,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.regular,
     color: COLORS.text,
     marginLeft: 10,
   },
@@ -419,7 +417,7 @@ const styles = StyleSheet.create({
   },
   tagLimit: {
     fontSize: 12,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.regular,
     color: COLORS.textMuted,
   },
   tagsGrid: {
@@ -439,17 +437,24 @@ const styles = StyleSheet.create({
   },
   tagSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.badgePurple,
+    backgroundColor: COLORS.badgeGreen,
     borderWidth: 1.5,
   },
   tagText: {
     fontSize: 14,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.medium,
     color: COLORS.textSecondary,
+    paddingRight: 2,
   },
   tagTextSelected: {
     color: COLORS.text,
-    fontWeight: FONTS.weights.semibold as any,
+    fontFamily: FONTS.weights.semibold,
+  },
+  primaryButtonText: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontFamily: FONTS.weights.semibold,
+    paddingHorizontal: 8,
   },
   secureNotice: {
     flexDirection: 'row',
@@ -463,8 +468,7 @@ const styles = StyleSheet.create({
   },
   secureNoticeTitle: {
     fontSize: 15,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
     marginBottom: 4,
   },
@@ -479,9 +483,10 @@ const styles = StyleSheet.create({
   },
   secureText: {
     fontSize: 13,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.regular,
     color: COLORS.textSecondary,
     lineHeight: 18,
+    paddingRight: 4,
   },
   footer: {
     paddingBottom: SPACING.xl,
@@ -529,19 +534,18 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.badgePurple,
+    backgroundColor: COLORS.badgeGreen,
   },
   successTitle: {
     fontSize: 32,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
     textAlign: 'center',
     marginBottom: SPACING.md,
   },
   successSubtitle: {
     fontSize: 16,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.regular,
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
@@ -577,15 +581,13 @@ const styles = StyleSheet.create({
   },
   walletLabel: {
     fontSize: 12,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.textMuted,
     letterSpacing: 0.5,
   },
   walletStatus: {
     fontSize: 16,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   walletDetails: {
@@ -600,14 +602,13 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.regular,
     color: COLORS.textMuted,
   },
   detailValue: {
     fontSize: 14,
-    fontFamily: FONTS.family,
+    fontFamily: FONTS.weights.medium,
     color: COLORS.text,
-    fontWeight: FONTS.weights.medium as any,
   },
   successFooter: {
     position: 'absolute',
@@ -618,5 +619,6 @@ const styles = StyleSheet.create({
   blackButton: {
     backgroundColor: COLORS.black,
     height: 60,
+    paddingHorizontal: 8,
   },
 });

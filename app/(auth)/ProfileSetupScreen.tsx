@@ -21,7 +21,22 @@ const ProfileSetupScreen = () => {
   const [businessName, setBusinessName] = useState('');
   const [location, setLocation] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [extraPill, setExtraPill] = useState<string | null>(null);
+  const [cacNumber, setCacNumber] = useState('');
+
+  // New Question States
+  const [availability, setAvailability] = useState<string[]>([]);
+  const [transport, setTransport] = useState<string | null>(null);
+  const [workRadius, setWorkRadius] = useState<string | null>(null);
+  const [experienceLevel, setExperienceLevel] = useState<string | null>(null);
+  
+  const [weeklyEarnings, setWeeklyEarnings] = useState<string | null>(null);
+  const [tradeTenure, setTradeTenure] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+
+  const [businessType, setBusinessType] = useState<string | null>(null);
+  const [hiringFrequency, setHiringFrequency] = useState<string | null>(null);
+  const [payRange, setPayRange] = useState<string | null>(null);
+  const [teamSize, setTeamSize] = useState<string | null>(null);
 
   // Constants based on role
   const isJobSeeker = role === 'jobseeker';
@@ -41,16 +56,13 @@ const ProfileSetupScreen = () => {
     ? ['Delivery', 'Cleaning', 'Labor and Construction', 'Event Catering', 'Security', 'Warehousing', 'Cooking', 'Market Assistant', 'Teaching']
     : ['Food and Groceries', 'Clothing and Fabric', 'Electronics', 'Household Goods', 'Artisan Services', 'Hair and Beauty', 'Phone Repairs', 'Farming Produce', 'Other'];
 
-  const extraLabel = isTrader ? 'Approximate weekly earnings' : isEmployer ? 'How often do you hire' : null;
-  const extraOptions = isTrader 
-    ? ['Under 5000', '5000 to 20000', '20000 to 50000', 'Above 50000']
-    : isEmployer ? ['Daily', 'Weekly', 'Monthly', 'Occasionally'] : [];
+  const businessTypeOptions = ['Retail', 'Food and Catering', 'Logistics', 'Construction', 'Cleaning', 'Events', 'Education', 'Other'];
 
-  const toggleSkill = (skill: string) => {
-    if (selectedSkills.includes(skill)) {
-      setSelectedSkills(selectedSkills.filter(s => s !== skill));
-    } else if (selectedSkills.length < 3) {
-      setSelectedSkills([...selectedSkills, skill]);
+  const toggleSelection = (item: string, list: string[], setList: (l: string[]) => void, max: number = 99) => {
+    if (list.includes(item)) {
+      setList(list.filter(i => i !== item));
+    } else if (list.length < max) {
+      setList([...list, item]);
     }
   };
 
@@ -62,13 +74,50 @@ const ProfileSetupScreen = () => {
       location,
       skills: isJobSeeker || isEmployer ? selectedSkills : undefined,
       categories: isTrader ? selectedSkills : undefined,
-      weeklyEarnings: isTrader ? extraPill || undefined : undefined,
-      hireFrequency: isEmployer ? extraPill || undefined : undefined,
+      availability: isJobSeeker ? availability : undefined,
+      transport: isJobSeeker ? transport || undefined : undefined,
+      workRadius: isJobSeeker ? workRadius || undefined : undefined,
+      experienceLevel: isJobSeeker ? experienceLevel || undefined : undefined,
+      weeklyEarnings: isTrader ? weeklyEarnings || undefined : undefined,
+      tradeTenure: isTrader ? tradeTenure || undefined : undefined,
+      paymentMethod: isTrader ? paymentMethod || undefined : undefined,
+      businessType: isEmployer ? businessType || undefined : undefined,
+      hiringFrequency: isEmployer ? hiringFrequency || undefined : undefined,
+      payRange: isEmployer ? payRange || undefined : undefined,
+      teamSize: isEmployer ? teamSize || undefined : undefined,
+      cacNumber: isEmployer ? cacNumber || undefined : undefined,
     });
     navigation.navigate('WalletLoading');
   };
 
-  const isFormValid = firstName && lastName && location && selectedSkills.length > 0 && (!extraLabel || extraPill);
+  const isFormValid = firstName && lastName && location && selectedSkills.length > 0 && (
+    (isJobSeeker && transport && workRadius && experienceLevel && availability.length > 0) ||
+    (isTrader && weeklyEarnings && tradeTenure && paymentMethod) ||
+    (isEmployer && businessType && hiringFrequency && payRange && teamSize)
+  );
+
+  const Section = ({ title, options, selected, onSelect, multi = false, hint }: any) => (
+    <View style={styles.sectionContainer}>
+      <View style={styles.skillHeader}>
+        <Text style={styles.inputLabel}>{title}</Text>
+        {hint && <Text style={styles.hintText}>{hint}</Text>}
+      </View>
+      <View style={styles.pillContainer}>
+        {options.map((opt: string) => {
+          const isSelected = multi ? selected.includes(opt) : selected === opt;
+          return (
+            <TouchableOpacity
+              key={opt}
+              style={[styles.pill, isSelected && styles.selectedPill]}
+              onPress={() => onSelect(opt)}
+            >
+              <Text style={[styles.pillText, isSelected && styles.selectedPillText]}>{opt}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top || 16 }]}>
@@ -106,7 +155,7 @@ const ProfileSetupScreen = () => {
             <Text style={styles.photoLabel}>Add Profile Photo</Text>
           </View>
 
-          {/* Form Fields */}
+          {/* Basic Info */}
           <View style={styles.form}>
             <View style={styles.row}>
               <View style={styles.flex1}>
@@ -159,45 +208,123 @@ const ProfileSetupScreen = () => {
               />
             </View>
 
-            {/* Skills / Categories */}
-            <View style={styles.skillHeader}>
-              <Text style={styles.inputLabel}>
-                {isTrader ? 'What do you sell or offer?' : isEmployer ? 'What type of workers do you usually need?' : 'What kind of work do you do?'}
-              </Text>
-              <Text style={styles.hintText}>Select up to 3</Text>
-            </View>
-            <View style={styles.pillContainer}>
-              {skillOptions.map((skill) => {
-                const isSelected = selectedSkills.includes(skill);
-                return (
-                  <TouchableOpacity
-                    key={skill}
-                    style={[styles.pill, isSelected && styles.selectedPill]}
-                    onPress={() => toggleSkill(skill)}
-                  >
-                    <Text style={[styles.pillText, isSelected && styles.selectedPillText]}>{skill}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* Extra Options (Earnings / Frequency) */}
-            {extraLabel && (
+            {/* Role Specific Sections */}
+            {isJobSeeker && (
               <>
-                <Text style={styles.inputLabel}>{extraLabel}</Text>
-                <View style={styles.pillContainer}>
-                  {extraOptions.map((option) => {
-                    const isSelected = extraPill === option;
-                    return (
-                      <TouchableOpacity
-                        key={option}
-                        style={[styles.pill, isSelected && styles.selectedPill]}
-                        onPress={() => setExtraPill(option)}
-                      >
-                        <Text style={[styles.pillText, isSelected && styles.selectedPillText]}>{option}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                <Section 
+                  title="What kind of work do you do?" 
+                  options={skillOptions}
+                  selected={selectedSkills}
+                  onSelect={(s: string) => toggleSelection(s, selectedSkills, setSelectedSkills, 3)}
+                  multi={true}
+                  hint="Select up to 3"
+                />
+                <Section 
+                  title="When are you available?" 
+                  options={['Morning', 'Afternoon', 'Evening', 'Full Day', 'Weekends']}
+                  selected={availability}
+                  onSelect={(s: string) => toggleSelection(s, availability, setAvailability)}
+                  multi={true}
+                  hint="Multiple selection"
+                />
+                <Section 
+                  title="Do you have transport?" 
+                  options={['Yes motorcycle', 'Yes car', 'No']}
+                  selected={transport}
+                  onSelect={setTransport}
+                />
+                <Section 
+                  title="Preferred work radius?" 
+                  options={['Within 2km', 'Within 5km', 'Within 10km', 'Anywhere']}
+                  selected={workRadius}
+                  onSelect={setWorkRadius}
+                />
+                <Section 
+                  title="Experience level?" 
+                  options={['Just starting', 'Some experience', 'Very experienced']}
+                  selected={experienceLevel}
+                  onSelect={setExperienceLevel}
+                />
+              </>
+            )}
+
+            {isTrader && (
+              <>
+                <Section 
+                  title="What do you sell or offer?" 
+                  options={skillOptions}
+                  selected={selectedSkills}
+                  onSelect={(s: string) => toggleSelection(s, selectedSkills, setSelectedSkills, 3)}
+                  multi={true}
+                  hint="Select up to 3"
+                />
+                <Section 
+                  title="Approximate weekly earnings?" 
+                  options={['Under 5,000 ₦', '5,000 to 20,000 ₦', '20,000 to 50,000 ₦', 'Above 50,000 ₦']}
+                  selected={weeklyEarnings}
+                  onSelect={setWeeklyEarnings}
+                />
+                <Section 
+                  title="Trade tenure?" 
+                  options={['Less than 1 year', '1 to 3 years', '3 to 5 years', '5 plus years']}
+                  selected={tradeTenure}
+                  onSelect={setTradeTenure}
+                />
+                <Section 
+                  title="Primary payment method?" 
+                  options={['Cash only', 'Sometimes digital', 'Mostly digital']}
+                  selected={paymentMethod}
+                  onSelect={setPaymentMethod}
+                />
+              </>
+            )}
+
+            {isEmployer && (
+              <>
+                <Section 
+                  title="Business type?" 
+                  options={businessTypeOptions}
+                  selected={businessType}
+                  onSelect={setBusinessType}
+                />
+                <Section 
+                  title="What type of workers do you need?" 
+                  options={skillOptions}
+                  selected={selectedSkills}
+                  onSelect={(s: string) => toggleSelection(s, selectedSkills, setSelectedSkills, 3)}
+                  multi={true}
+                  hint="Select up to 3"
+                />
+                <Section 
+                  title="How often do you hire?" 
+                  options={['Daily', 'Weekly', 'Monthly', 'Occasionally']}
+                  selected={hiringFrequency}
+                  onSelect={setHiringFrequency}
+                />
+                <Section 
+                  title="Typical pay range?" 
+                  options={['Under 3,000 ₦', '3,000 to 5,000 ₦', '5,000 to 10,000 ₦', 'Above 10,000 ₦']}
+                  selected={payRange}
+                  onSelect={setPayRange}
+                />
+                <Section 
+                  title="Team size?" 
+                  options={['1 to 2', '3 to 5', '6 to 10', '10 plus']}
+                  selected={teamSize}
+                  onSelect={setTeamSize}
+                />
+                <View style={styles.sectionContainer}>
+                  <Text style={styles.inputLabel}>CAC Registration Number (Optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. RC1234567"
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={cacNumber}
+                    onChangeText={setCacNumber}
+                  />
+                  <TouchableOpacity style={styles.skipLink} onPress={handleCreateWallet}>
+                    <Text style={styles.skipLinkText}>Skip for now</Text>
+                  </TouchableOpacity>
                 </View>
               </>
             )}
@@ -358,11 +485,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.weights.medium,
     color: COLORS.text,
   },
+  sectionContainer: {
+    marginTop: 8,
+  },
   skillHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
   },
   hintText: {
     fontSize: 11,
@@ -374,7 +503,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginTop: 8,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   pill: {
     paddingHorizontal: 16,
@@ -396,6 +525,16 @@ const styles = StyleSheet.create({
   selectedPillText: {
     color: COLORS.primary,
     fontFamily: FONTS.weights.bold,
+  },
+  skipLink: {
+    marginTop: 12,
+    alignSelf: 'center',
+  },
+  skipLinkText: {
+    fontSize: 13,
+    fontFamily: FONTS.weights.medium,
+    color: COLORS.textSecondary,
+    textDecorationLine: 'underline',
   },
   footer: {
     paddingHorizontal: 24,
@@ -422,8 +561,9 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: COLORS.white,
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: FONTS.weights.semibold,
+    paddingHorizontal: 8,
   },
 });
 

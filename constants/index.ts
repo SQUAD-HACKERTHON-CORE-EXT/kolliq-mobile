@@ -40,11 +40,11 @@ export const COLORS = {
   secondaryMuted: 'rgba(27, 77, 62, 0.1)',
   escrowBg: '#EAF5EF',
   matchBg: '#F5F5F0',
-  badgePurple: '#EAF5EF',
+  badgeGreen: '#EAF5EF',
 };
 
 export const FONTS = {
-  family: 'Inter',
+  family: 'PlusJakartaSans',
   sizes: {
     xs: 12,
     sm: 12,
@@ -66,10 +66,10 @@ export const FONTS = {
     logo: 18,
   },
   weights: {
-    regular: 'Inter' as const,
-    medium: 'Inter-Medium' as const,
-    semibold: 'Inter-SemiBold' as const,
-    bold: 'Inter-Bold' as const,
+    regular: 'PlusJakartaSans_400Regular' as const,
+    medium: 'PlusJakartaSans_500Medium' as const,
+    semibold: 'PlusJakartaSans_600SemiBold' as const,
+    bold: 'PlusJakartaSans_700Bold' as const,
   },
 };
 
@@ -133,3 +133,10 @@ export const SUCCESS_MESSAGES = {
   PAYMENT_RECEIVED: 'Payment received!',
 };
 
+export const BUSINESS_RULES = {
+  INITIAL_EIS_SCORE: 10,
+  MAX_EIS_SCORE: 100,
+  SAVINGS_UNLOCK_DAYS: 7,
+  LOAN_UNLOCK_DAYS: 30,
+  INSURANCE_UNLOCK_DAYS: 60,
+};

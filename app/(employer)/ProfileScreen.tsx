@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout';
@@ -8,7 +9,7 @@ import { Card } from '../../components/ui/Card';
 const NAV_TABS = [
   { id: 'EmployerHome', label: 'Dashboard', icon: 'apps-outline', activeIcon: 'apps' },
   { id: 'workers', label: 'Workers', icon: 'people-outline' },
-  { id: 'wallet', label: 'Wallet', icon: 'wallet-outline' },
+  { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline' },
   { id: 'profile', label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
 ] as const;
 
@@ -70,7 +71,7 @@ export default function EmployerProfile({ navigation }: any) {
           </View>
 
           <View style={styles.trustItem}>
-            <View style={[styles.trustIcon, { backgroundColor: COLORS.badgePurple }]}>
+            <View style={[styles.trustIcon, { backgroundColor: COLORS.badgeGreen }]}>
               <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.primary} />
             </View>
             <View style={styles.trustText}>
@@ -180,8 +181,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
     marginBottom: SPACING['2xl'],
   },
@@ -203,8 +203,7 @@ const styles = StyleSheet.create({
   },
   ratingValue: {
     fontSize: 48,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   ratingLabel: {
@@ -232,8 +231,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 20,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   statLabel: {
@@ -247,8 +245,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
     marginBottom: SPACING.xl,
   },
@@ -275,8 +272,7 @@ const styles = StyleSheet.create({
   },
   trustTitle: {
     fontSize: 16,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   trustSubtitle: {
@@ -300,8 +296,7 @@ const styles = StyleSheet.create({
   },
   reviewRole: {
     fontSize: 16,
-    fontFamily: FONTS.family,
-    fontWeight: FONTS.weights.bold as any,
+    fontFamily: FONTS.weights.bold,
     color: COLORS.text,
   },
   reviewStars: {

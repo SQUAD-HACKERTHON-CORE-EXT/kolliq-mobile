@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions, ScrollView, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions, ScrollView, Platform, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../constants';
@@ -34,19 +34,22 @@ const WelcomeScreen = () => {
         <View style={styles.collageSection}>
           <View style={styles.collageContainer}>
             {/* Photo 1 (Left, rotated) */}
-            <View style={[styles.photoPlaceholder, styles.photo1, { backgroundColor: '#C8D8C8' }]}>
-              <Feather name="camera" size={20} color={COLORS.textSecondary} />
-            </View>
+            <Image 
+              source={{ uri: 'https://images.unsplash.com/photo-1542044896530-05d85be9b11a?auto=format&fit=crop&w=400&q=80' }}
+              style={[styles.photoPlaceholder, styles.photo1]}
+            />
             
             {/* Photo 2 (Center, overlapping) */}
-            <View style={[styles.photoPlaceholder, styles.photo2, { backgroundColor: '#D4C8B0' }]}>
-              <Feather name="camera" size={20} color={COLORS.textSecondary} />
-            </View>
+            <Image 
+              source={{ uri: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80' }}
+              style={[styles.photoPlaceholder, styles.photo2]}
+            />
             
             {/* Photo 3 (Front Center, most prominent) */}
-            <View style={[styles.photoPlaceholder, styles.photo3, { backgroundColor: '#B8C4B8' }]}>
-              <Feather name="camera" size={24} color={COLORS.textSecondary} />
-            </View>
+            <Image 
+              source={{ uri: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=400&q=80' }}
+              style={[styles.photoPlaceholder, styles.photo3]}
+            />
 
             {/* Floating Score Card */}
             <View style={styles.scoreCard}>
@@ -125,6 +128,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: FONTS.weights.bold,
     color: COLORS.text,
+    paddingRight: 4, // Prevent 'q' clipping
   },
   collageSection: {
     height: height * 0.4,
@@ -202,6 +206,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.weights.medium,
     color: COLORS.textSecondary,
     marginTop: 2,
+    lineHeight: 16,
   },
   contentSection: {
     paddingHorizontal: 28,
@@ -214,14 +219,15 @@ const styles = StyleSheet.create({
     fontSize: width > 380 ? 36 : 32,
     fontFamily: FONTS.weights.bold,
     color: COLORS.text,
-    lineHeight: (width > 380 ? 36 : 32) * 1.05,
+    lineHeight: (width > 380 ? 36 : 32) * 1.2,
     letterSpacing: -0.5,
   },
   subtext: {
     fontSize: 15,
     fontFamily: FONTS.weights.regular,
     color: COLORS.textSecondary,
-    lineHeight: 15 * 1.5,
+    lineHeight: 24,
+    paddingRight: 10, // Ensure last words aren't clipped
   },
   buttonSection: {
     position: 'absolute',
@@ -245,6 +251,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 16,
     fontFamily: FONTS.weights.semibold,
+    paddingHorizontal: 4,
   },
   ghostButton: {
     height: 56,
@@ -258,6 +265,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 16,
     fontFamily: FONTS.weights.semibold,
+    paddingHorizontal: 4,
   },
 });
 

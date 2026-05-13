@@ -12,6 +12,7 @@ interface ButtonProps {
   fullWidth?: boolean;
   icon?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<any>;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -24,6 +25,7 @@ export const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   icon,
   style,
+  textStyle,
 }) => {
   const isDisabled = disabled || loading;
 
@@ -40,6 +42,7 @@ export const Button: React.FC<ButtonProps> = ({
     styles.text,
     styles[`text_${variant}`],
     styles[`text_${size}`],
+    textStyle,
   ];
 
   return (

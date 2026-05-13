@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   selectedCard: {
     borderColor: COLORS.primary,
     borderWidth: 1.5,
-    backgroundColor: COLORS.badgePurple,
+    backgroundColor: COLORS.badgeGreen,
   },
   roleIconContainer: {
     width: 48,
