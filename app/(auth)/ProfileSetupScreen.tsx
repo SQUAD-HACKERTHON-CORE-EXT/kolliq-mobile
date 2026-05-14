@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, LayoutAnimation, UIManager } from 'react-native';
+
 import { StatusBar } from 'expo-status-bar';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, BORDER_RADIUS } from '../../constants';
@@ -21,6 +22,7 @@ const ProfileSetupScreen = () => {
   const [businessName, setBusinessName] = useState('');
   const [location, setLocation] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [otherSkillText, setOtherSkillText] = useState('');
   const [cacNumber, setCacNumber] = useState('');
 
   // New Question States
@@ -53,14 +55,18 @@ const ProfileSetupScreen = () => {
   const roleLabel = isJobSeeker ? 'Job Seeker Profile' : isTrader ? 'Trader Profile' : 'Employer Profile';
 
   const skillOptions = isJobSeeker || isEmployer 
-    ? ['Delivery', 'Cleaning', 'Labor and Construction', 'Event Catering', 'Security', 'Warehousing', 'Cooking', 'Market Assistant', 'Teaching']
+    ? ['Delivery', 'Cleaning', 'Labor and Construction', 'Event Catering', 'Security', 'Warehousing', 'Cooking', 'Market Assistant', 'Teaching', 'Other']
     : ['Food and Groceries', 'Clothing and Fabric', 'Electronics', 'Household Goods', 'Artisan Services', 'Hair and Beauty', 'Phone Repairs', 'Farming Produce', 'Other'];
 
   const businessTypeOptions = ['Retail', 'Food and Catering', 'Logistics', 'Construction', 'Cleaning', 'Events', 'Education', 'Other'];
 
   const toggleSelection = (item: string, list: string[], setList: (l: string[]) => void, max: number = 99) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (list.includes(item)) {
       setList(list.filter(i => i !== item));
+      if (item === 'Other' && list === selectedSkills) {
+        setOtherSkillText('');
+      }
     } else if (list.length < max) {
       setList([...list, item]);
     }
@@ -72,8 +78,8 @@ const ProfileSetupScreen = () => {
       lastName,
       businessName: isTrader || isEmployer ? businessName : undefined,
       location,
-      skills: isJobSeeker || isEmployer ? selectedSkills : undefined,
-      categories: isTrader ? selectedSkills : undefined,
+      skills: isJobSeeker || isEmployer ? selectedSkills.map(s => s === 'Other' ? `other:${otherSkillText}` : s) : undefined,
+      categories: isTrader ? selectedSkills.map(s => s === 'Other' ? `other:${otherSkillText}` : s) : undefined,
       availability: isJobSeeker ? availability : undefined,
       transport: isJobSeeker ? transport || undefined : undefined,
       workRadius: isJobSeeker ? workRadius || undefined : undefined,
@@ -90,11 +96,34 @@ const ProfileSetupScreen = () => {
     navigation.navigate('WalletLoading');
   };
 
-  const isFormValid = firstName && lastName && location && selectedSkills.length > 0 && (
+  const isOtherValid = !selectedSkills.includes('Other') || otherSkillText.trim().length >= 3;
+
+  const isFormValid = firstName && lastName && location && selectedSkills.length > 0 && isOtherValid && (
     (isJobSeeker && transport && workRadius && experienceLevel && availability.length > 0) ||
     (isTrader && weeklyEarnings && tradeTenure && paymentMethod) ||
     (isEmployer && businessType && hiringFrequency && payRange && teamSize)
   );
+
+  const renderOtherInput = () => {
+    if (!selectedSkills.includes('Other')) return null;
+
+    const label = isJobSeeker ? 'Tell us what you do' : isTrader ? 'What do you sell or offer' : 'What kind of workers do you need';
+    const placeholder = isJobSeeker ? 'Describe your work or skill' : isTrader ? 'Describe your goods or services' : 'Describe the type of workers you need';
+
+    return (
+      <View style={styles.otherInputContainer}>
+        <Text style={styles.otherInputLabel}>{label}</Text>
+        <TextInput
+          style={styles.otherInput}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.textSecondary}
+          value={otherSkillText}
+          onChangeText={setOtherSkillText}
+        />
+        <Text style={styles.otherHelperText}>This helps us match you better.</Text>
+      </View>
+    );
+  };
 
   const Section = ({ title, options, selected, onSelect, multi = false, hint }: any) => (
     <View style={styles.sectionContainer}>
@@ -219,6 +248,7 @@ const ProfileSetupScreen = () => {
                   multi={true}
                   hint="Select up to 3"
                 />
+                {renderOtherInput()}
                 <Section 
                   title="When are you available?" 
                   options={['Morning', 'Afternoon', 'Evening', 'Full Day', 'Weekends']}
@@ -258,6 +288,7 @@ const ProfileSetupScreen = () => {
                   multi={true}
                   hint="Select up to 3"
                 />
+                {renderOtherInput()}
                 <Section 
                   title="Approximate weekly earnings?" 
                   options={['Under 5,000 ₦', '5,000 to 20,000 ₦', '20,000 to 50,000 ₦', 'Above 50,000 ₦']}
@@ -295,6 +326,7 @@ const ProfileSetupScreen = () => {
                   multi={true}
                   hint="Select up to 3"
                 />
+                {renderOtherInput()}
                 <Section 
                   title="How often do you hire?" 
                   options={['Daily', 'Weekly', 'Monthly', 'Occasionally']}
@@ -564,6 +596,33 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: FONTS.weights.semibold,
     paddingHorizontal: 8,
+  },
+  otherInputContainer: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  otherInputLabel: {
+    fontSize: 12,
+    fontFamily: FONTS.weights.semibold,
+    color: COLORS.primary,
+    marginBottom: 8,
+  },
+  otherInput: {
+    backgroundColor: '#F5F5F0',
+    borderWidth: 1.5,
+    borderColor: '#E0E0D8',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    fontFamily: FONTS.weights.medium,
+    color: COLORS.text,
+  },
+  otherHelperText: {
+    fontSize: 11,
+    fontFamily: FONTS.weights.regular,
+    color: COLORS.textSecondary,
+    marginTop: 6,
   },
 });
 

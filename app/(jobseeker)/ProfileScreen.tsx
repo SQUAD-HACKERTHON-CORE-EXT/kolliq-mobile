@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -6,16 +6,36 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { DUMMY_USER, DUMMY_TOP_WORKERS } from '../../constants/dummyData';
 import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout';
 import { Card } from '../../components/ui/Card';
+import { useAppStore } from '../../store/useAppStore';
+import { getProfile } from '../../services/authService';
 
 const NAV_TABS = [
-  { id: 'JobseekerHome', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
+  { id: 'Home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
   { id: 'JobsFeed', label: 'Jobs', icon: 'briefcase-outline', activeIcon: 'briefcase' },
   { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline', activeIcon: 'wallet' },
   { id: 'JobseekerProfile', label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
 ] as const;
 
 export default function JobseekerProfile({ navigation }: any) {
-  const user = DUMMY_USER;
+  const storeUser = useAppStore((state) => state.user);
+  const setUser = useAppStore((state) => state.setUser);
+
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  const loadProfileData = async () => {
+    try {
+      const data = await getProfile();
+      if (data) {
+        setUser(data);
+      }
+    } catch (error) {
+      console.log('Profile load error:', error);
+    }
+  };
+
+  const user = storeUser || DUMMY_USER;
 
   return (
     <SafeAreaView style={styles.container}>

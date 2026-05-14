@@ -35,11 +35,11 @@ export default function OnboardingScreen({ navigation, route }: any) {
 
   const onAnimationComplete = () => {
     if (role === 'jobseeker') {
-      navigation.navigate('JobseekerHome');
+      navigation.navigate('Home');
     } else if (role === 'trader') {
       navigation.navigate('TraderHome');
     } else {
-      navigation.navigate('EmployerHome');
+      navigation.navigate('EmployerDashboard');
     }
   };
 

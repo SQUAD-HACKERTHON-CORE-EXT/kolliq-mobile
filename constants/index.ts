@@ -107,7 +107,7 @@ export const LAYOUT = {
 };
 
 export const API_CONFIG = {
-  BASE_URL: 'https://api.kolliq.com',
+  BASE_URL: 'https://node-middleware.up.railway.app',
   TIMEOUT: 30000,
 };
 

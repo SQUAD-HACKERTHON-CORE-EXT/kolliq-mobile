@@ -4,28 +4,27 @@ import { StatusBar } from 'expo-status-bar';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, BORDER_RADIUS } from '../../constants';
 import { useNavigation } from '@react-navigation/native';
-import { useAuthStore } from '../../store/authStore';
-import { UserRole } from '../../types';
+import { useAppStore } from '../../store/useAppStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const UserTypeSelectionScreen = () => {
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'worker' | 'employer' | 'trader' | null>(null);
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const updateUser = useAuthStore((state) => state.updateUser);
+  const setOnboardingData = useAppStore((state) => state.setOnboardingData);
 
-  const roles: { id: UserRole; title: string; description: string; icon: any; iconType: 'feather' | 'material' }[] = [
+  const roles: { id: 'worker' | 'employer' | 'trader'; title: string; description: string; icon: any; iconType: 'feather' | 'material' }[] = [
     {
-      id: 'jobseeker',
+      id: 'worker',
       title: 'I am looking for work',
-      description: 'Find verified gigs, get paid directly to your Squad wallet, and build your Economic Identity Score.',
+      description: 'Find verified gigs, get paid directly to your Kolliq wallet, and build your Economic Identity Score.',
       icon: 'briefcase',
       iconType: 'feather',
     },
     {
       id: 'trader',
       title: 'I sell goods or services',
-      description: 'Receive digital payments from customers, grow your business score, and unlock loans.',
+      description: 'Receive digital payments, grow your business score, and unlock loans for your business.',
       icon: 'storefront-outline',
       iconType: 'material',
     },
@@ -40,8 +39,14 @@ const UserTypeSelectionScreen = () => {
 
   const handleComplete = () => {
     if (selectedRole) {
-      updateUser({ role: selectedRole });
-      navigation.navigate('ProfileSetup', { role: selectedRole });
+      setOnboardingData({ role: selectedRole });
+      if (selectedRole === 'worker') {
+        navigation.navigate('OnboardingWorker');
+      } else if (selectedRole === 'trader') {
+        navigation.navigate('OnboardingTraderDetails');
+      } else {
+        navigation.navigate('OnboardingEmployerDetails');
+      }
     }
   };
 

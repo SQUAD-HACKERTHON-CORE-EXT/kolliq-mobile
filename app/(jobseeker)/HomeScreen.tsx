@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,9 +10,11 @@ import { GigCard } from '../../components/ui/GigCard';
 import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { formatCurrency, formatNumber } from '../../utils/formatCurrency';
+import { useAppStore } from '../../store/useAppStore';
+import { authService } from '../../services/auth'
 
 const NAV_TABS = [
-  { id: 'JobseekerHome', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
+  { id: 'Home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
   { id: 'JobsFeed', label: 'Jobs', icon: 'briefcase-outline', activeIcon: 'briefcase' },
   { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline', activeIcon: 'wallet' },
   { id: 'JobseekerProfile', label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
@@ -28,11 +30,32 @@ const SKILL_ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function HomeScreen({ navigation }: any) {
-  const user = DUMMY_USER;
-  const wallet = DUMMY_WALLET;
+  const wallet = useAppStore((state) => state.wallet);
+  const user = useAppStore((state) => state.user);
   const jobs = DUMMY_JOBS;
 
-  const firstName = user.full_name.split(' ')[0];
+  const setWallet = useAppStore((state) => state.setWallet);
+  const setUser = useAppStore((state) => state.setUser);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const profileData = await authService.getProfile();
+      
+      if (profileData) {
+        setUser(profileData);
+      }
+    } catch (error) {
+      console.log('Home load error:', error);
+    }
+  };
+
+  const displayWallet = wallet || DUMMY_WALLET;
+  const displayUser = user || DUMMY_USER;
+  const firstName = displayUser.full_name.split(' ')[0];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -50,8 +73,8 @@ export default function HomeScreen({ navigation }: any) {
         {/* Wallet Balance Card */}
         <View style={styles.section}>
           <WalletCard
-            balance={formatNumber(parseFloat(wallet.balance))}
-            score={user.eis_score}
+            balance={formatNumber(parseFloat(displayWallet.balance))}
+            score={displayUser.eis_score || 0}
             onPrimaryAction={() => navigation.navigate('WalletScreen')}
             onSecondaryAction={() => navigation.navigate('WalletScreen')}
           />
@@ -85,7 +108,7 @@ export default function HomeScreen({ navigation }: any) {
         {/* EIS Score */}
         <View style={styles.section}>
           <ScoreCard
-            score={user.eis_score}
+            score={displayUser.eis_score || 0}
             tier="Tier 2: Savings Active"
             gigsCompleted={12}
             ptsToNext={33}
@@ -173,7 +196,7 @@ export default function HomeScreen({ navigation }: any) {
       </ScrollView>
 
       <BottomNav
-        activeTab="JobseekerHome"
+        activeTab="Home"
         onTabPress={(tab) => navigation.navigate(tab)}
         tabs={NAV_TABS as any}
       />

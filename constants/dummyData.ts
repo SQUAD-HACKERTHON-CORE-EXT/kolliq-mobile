@@ -168,3 +168,30 @@ export const DUMMY_TOP_WORKERS = [
     rating: 4.9,
   },
 ];
+
+export const DUMMY_JOB_DETAIL = {
+  title: 'Warehouse Loader',
+  employer: 'Logistics Pro',
+  rating: '4.8',
+  location: 'Ikeja Industrial Area',
+  duration: '6',
+  startTime: 'Tomorrow, 8:00 AM',
+  workersNeeded: '3',
+  description: 'We need strong individuals to help load boxes into delivery trucks. Must be able to lift 20kg. Safety gear will be provided on site.',
+  pay: '₦15,000',
+};
+
+export const DUMMY_CATEGORIES = ['Delivery', 'Cleaning', 'Labor', 'Catering', 'Security', 'Warehousing', 'Teaching', 'Other'];
+
+export const DUMMY_ESCROW_INSTRUCTIONS = {
+  accountNumber: '0123456789',
+  bank: 'GTBank',
+  amount: '₦0',
+  reference: 'SQD-XXXXXX',
+};
+
+export const DUMMY_EIS_SCORE = {
+  score: 65,
+  gigsDone: 12,
+  daysActive: 45,
+};

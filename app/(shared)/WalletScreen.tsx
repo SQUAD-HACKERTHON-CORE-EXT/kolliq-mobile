@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Clipboard } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Clipboard, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { DUMMY_WALLET, DUMMY_TRANSACTIONS, DUMMY_USER, DUMMY_SAVINGS } from '../../constants/dummyData';
 import { BottomNav } from '../../components/ui/DashboardLayout';
 import { formatCurrency } from '../../utils/formatCurrency';
-
-const NAV_TABS = [
-  { id: 'JobseekerHome', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
-  { id: 'JobsFeed', label: 'Jobs', icon: 'briefcase-outline', activeIcon: 'briefcase' },
-  { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline', activeIcon: 'wallet' },
-  { id: 'JobseekerProfile', label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
-] as const;
+import { useAppStore } from '../../store/useAppStore';
+import { getWallet, getTransactions } from '../../services/walletService';
+import { handleApiError } from '../../utils/handleApiError';
 
 const WALLET_TABS = ['Overview', 'Transactions', 'Savings'];
 
@@ -20,16 +16,84 @@ export default function WalletScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState('Overview');
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
-  const wallet = DUMMY_WALLET;
-  const transactions = DUMMY_TRANSACTIONS;
-  const savings = DUMMY_SAVINGS;
-  const user = DUMMY_USER;
+  const wallet = useAppStore((state) => state.wallet);
+  const transactions = useAppStore((state) => state.transactions);
+  const walletLoading = useAppStore((state) => state.walletLoading);
+  const transactionsLoading = useAppStore((state) => state.transactionsLoading);
+  
+  const setWallet = useAppStore((state) => state.setWallet);
+  const setWalletLoading = useAppStore((state) => state.setWalletLoading);
+  const setTransactions = useAppStore((state) => state.setTransactions);
+  const setTransactionsLoading = useAppStore((state) => state.setTransactionsLoading);
+
+  const user = useAppStore((state) => state.user);
+  const userName = user?.full_name || DUMMY_USER.full_name;
+
+  const isLoading = walletLoading || transactionsLoading;
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadWalletData();
+  }, [retryKey]);
+
+  const loadWalletData = async () => {
+    try {
+      setLoadError(null);
+      setWalletLoading(true);
+      setTransactionsLoading(true);
+
+      const [walletData, txData] = await Promise.all([
+        getWallet(),
+        getTransactions(),
+      ]);
+
+      if (walletData) {
+        setWallet(walletData);
+      }
+      if (txData) {
+        setTransactions(txData.transactions || []);
+      }
+    } catch (error: any) {
+      setLoadError(error?.message || 'Failed to load wallet data');
+      console.log('Wallet load error:', error);
+    } finally {
+      setWalletLoading(false);
+      setTransactionsLoading(false);
+    }
+  };
+
+  const getNavTabs = () => {
+    if (user?.role === 'employer') {
+      return [
+        { id: 'EmployerDashboard', label: 'Dashboard', icon: 'apps-outline', activeIcon: 'apps' },
+        { id: 'Workers', label: 'Workers', icon: 'people-outline' },
+        { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline' },
+        { id: 'EmployerProfile', label: 'Profile', icon: 'person-outline' },
+      ];
+    } else if (user?.role === 'trader') {
+      return [
+        { id: 'TraderHome', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
+        { id: 'TraderHome', label: 'Market', icon: 'storefront-outline' },
+        { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline' },
+        { id: 'TraderHome', label: 'Account', icon: 'person-outline' },
+      ];
+    }
+    return [
+      { id: 'Home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
+      { id: 'JobsFeed', label: 'Jobs', icon: 'briefcase-outline', activeIcon: 'briefcase' },
+      { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline', activeIcon: 'wallet' },
+      { id: 'JobseekerProfile', label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
+    ];
+  };
 
   const handleCopy = () => {
-    // Clipboard.setString(wallet.account_number);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (wallet?.account_number) {
+      Clipboard.setString(wallet.account_number);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -47,6 +111,10 @@ export default function WalletScreen({ navigation }: any) {
     return date.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Use wallet data or fallback to dummy
+  const displayWallet = wallet || DUMMY_WALLET;
+  const displayTransactions = transactions.length > 0 ? transactions : DUMMY_TRANSACTIONS;
+  const displaySavings = DUMMY_SAVINGS;
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -60,68 +128,87 @@ export default function WalletScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Balance Card */}
-        <View style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <Text style={styles.balanceLabel}>Available Balance</Text>
-            <TouchableOpacity onPress={() => setBalanceVisible(!balanceVisible)}>
-              <Ionicons name={balanceVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color="rgba(255,255,255,0.7)" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.balanceRow}>
-            <Text style={styles.currency}>₦</Text>
-            <Text style={styles.balanceAmount}>
-              {balanceVisible ? parseFloat(wallet.balance).toLocaleString('en-NG') : '••••••'}
-            </Text>
-            <Text style={styles.decimal}>{balanceVisible ? '.00' : ''}</Text>
-          </View>
-
-          {/* Account Info */}
-          <TouchableOpacity style={styles.accountInfoRow} onPress={handleCopy}>
-            <View style={styles.accountInfoLeft}>
-              <Ionicons name="card-outline" size={16} color="rgba(255,255,255,0.7)" />
-              <Text style={styles.accountNumber}>{wallet.account_number}</Text>
-              <Text style={styles.bankName}>• {wallet.bank_name}</Text>
-            </View>
-            <View style={styles.copyBadge}>
-              <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={14} color={COLORS.primary} />
-              <Text style={styles.copyText}>{copied ? 'Copied!' : 'Copy'}</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Action Buttons */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionButton}>
-              <View style={styles.actionIconCircle}>
-                <Ionicons name="add" size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.actionLabel}>Add Money</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <View style={styles.actionIconCircle}>
-                <Ionicons name="arrow-up" size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.actionLabel}>Send</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <View style={styles.actionIconCircle}>
-                <Ionicons name="swap-horizontal" size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.actionLabel}>Transfer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <View style={styles.actionIconCircle}>
-                <Ionicons name="receipt-outline" size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.actionLabel}>Request</Text>
-            </TouchableOpacity>
-          </View>
+      {isLoading && !wallet ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
+      ) : loadError && !wallet ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{loadError}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => setRetryKey(k => k + 1)}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* Balance Card */}
+          <View style={styles.balanceCard}>
+            <View style={styles.balanceHeader}>
+              <Text style={styles.balanceLabel}>Available Balance</Text>
+              <TouchableOpacity onPress={() => setBalanceVisible(!balanceVisible)}>
+                <Ionicons name={balanceVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+            </View>
 
-        {/* Tab Navigation */}
-        <View style={styles.tabRow}>
+            <View style={styles.balanceRow}>
+              <Text style={styles.currency}>₦</Text>
+              <Text style={styles.balanceAmount}>
+                {balanceVisible ? parseFloat(displayWallet.balance).toLocaleString('en-NG') : '••••••'}
+              </Text>
+              <Text style={styles.decimal}>{balanceVisible ? '.00' : ''}</Text>
+            </View>
+
+            {/* Account Info */}
+            <TouchableOpacity style={styles.accountInfoRow} onPress={handleCopy}>
+              <View style={styles.accountInfoLeft}>
+                <Ionicons name="card-outline" size={16} color="rgba(255,255,255,0.7)" />
+                <Text style={styles.accountNumber}>{displayWallet.account_number}</Text>
+                <Text style={styles.bankName}>• {displayWallet.bank_name}</Text>
+              </View>
+              <View style={styles.copyBadge}>
+                <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={14} color={COLORS.primary} />
+                <Text style={styles.copyText}>{copied ? 'Copied!' : 'Copy'}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={{ marginTop: 8, marginBottom: 20 }}>
+              <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.weights.semibold, textTransform: 'uppercase' }}>
+                {userName}
+              </Text>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.actionRow}>
+              <TouchableOpacity style={styles.actionButton}>
+                <View style={styles.actionIconCircle}>
+                  <Ionicons name="add" size={20} color={COLORS.primary} />
+                </View>
+                <Text style={styles.actionLabel}>Add Money</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton}>
+                <View style={styles.actionIconCircle}>
+                  <Ionicons name="arrow-up" size={20} color={COLORS.primary} />
+                </View>
+                <Text style={styles.actionLabel}>Send</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton}>
+                <View style={styles.actionIconCircle}>
+                  <Ionicons name="swap-horizontal" size={20} color={COLORS.primary} />
+                </View>
+                <Text style={styles.actionLabel}>Transfer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton}>
+                <View style={styles.actionIconCircle}>
+                  <Ionicons name="receipt-outline" size={20} color={COLORS.primary} />
+                </View>
+                <Text style={styles.actionLabel}>Request</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Tab Navigation */}
+          <View style={styles.tabRow}>
           {WALLET_TABS.map((tab) => (
             <TouchableOpacity
               key={tab}
@@ -254,13 +341,15 @@ export default function WalletScreen({ navigation }: any) {
         )}
 
         <View style={{ height: 100 }} />
-      </ScrollView>
+          </ScrollView>
 
-      <BottomNav
-        activeTab="WalletScreen"
-        onTabPress={(tab) => navigation.navigate(tab)}
-        tabs={NAV_TABS as any}
-      />
+          <BottomNav
+            activeTab="WalletScreen"
+            onTabPress={(tab) => navigation.navigate(tab)}
+            tabs={getNavTabs() as any}
+          />
+        </>
+      )}
     </SafeAreaView>
   );
 }

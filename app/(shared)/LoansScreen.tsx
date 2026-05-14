@@ -1,15 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { DUMMY_LOAN_ELIGIBILITY, DUMMY_USER } from '../../constants/dummyData';
+import { useAppStore } from '../../store/useAppStore';
+import { checkLoanEligibility, getLoans } from '../../services/financialService';
 
 export default function LoansScreen({ navigation }: any) {
   const [loanRequested, setLoanRequested] = useState(false);
-  const loan = DUMMY_LOAN_ELIGIBILITY;
+
+  const loansUnlocked = useAppStore((state) => state.loansUnlocked);
+  const eisScore = useAppStore((state) => state.eisScore);
+  const loanEligibility = useAppStore((state) => state.loanEligibility);
+  const activeLoans = useAppStore((state) => state.activeLoans);
+
+  const setLoanEligibility = useAppStore((state) => state.setLoanEligibility);
+  const setActiveLoans = useAppStore((state) => state.setActiveLoans);
+
+  useEffect(() => {
+    loadLoanData();
+  }, []);
+
+  const loadLoanData = async () => {
+    try {
+      const [eligData, loansData] = await Promise.all([
+        checkLoanEligibility(),
+        getLoans(),
+      ]);
+
+      if (eligData) {
+        setLoanEligibility(eligData);
+      }
+      if (loansData) {
+        setActiveLoans(loansData.loans || []);
+      }
+    } catch (error) {
+      console.log('Loan data load error:', error);
+    }
+  };
+
+  const loan = loanEligibility || DUMMY_LOAN_ELIGIBILITY;
   const user = DUMMY_USER;
-  const isUnlocked = user.eis_score >= 60;
+  const isUnlocked = loansUnlocked;
 
   if (!isUnlocked) {
     return (
@@ -33,13 +66,13 @@ export default function LoansScreen({ navigation }: any) {
           <View style={styles.lockedProgressCard}>
             <View style={styles.lockedProgressHeader}>
               <Text style={styles.lockedProgressLabel}>Your EIS Score</Text>
-              <Text style={styles.lockedProgressValue}>{user.eis_score}/60</Text>
+              <Text style={styles.lockedProgressValue}>{eisScore}/50</Text>
             </View>
             <View style={styles.progressBg}>
-              <View style={[styles.progressFill, { width: `${(user.eis_score / 60) * 100}%` }]} />
+              <View style={[styles.progressFill, { width: `${(eisScore / 50) * 100}%` }]} />
             </View>
             <Text style={styles.lockedProgressHint}>
-              {60 - user.eis_score} more points needed
+              {Math.max(0, 50 - eisScore)} more points needed
             </Text>
           </View>
           <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.goBack()}>

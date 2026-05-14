@@ -1,19 +1,43 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, BORDER_RADIUS } from '../../constants';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppStore } from '../../store/useAppStore';
+import { authService } from '../../services/auth';
 
 const { width } = Dimensions.get('window');
 
 const PhoneEntryScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const setOnboardingData = useAppStore((state) => state.setOnboardingData);
 
   const isValid = phoneNumber.length === 11;
+
+  const handleRequestOtp = async () => {
+    if (!isValid) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      await authService.requestOtp(phoneNumber);
+      // Success - save phone and navigate to OTP verification
+      setOnboardingData({ phone: phoneNumber });
+      navigation.navigate('OTPVerification');
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to request OTP. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top || 16 }]}>
@@ -38,7 +62,7 @@ const PhoneEntryScreen = () => {
           <View style={styles.content}>
             <Text style={styles.heading}>What is your phone number?</Text>
             <Text style={styles.subtext}>
-              We will send a 6 digit code to verify your number. This will be your primary login.
+              We will use this to create your Kolliq account and securely manage your profile.
             </Text>
 
             {/* Input Label */}
@@ -72,18 +96,32 @@ const PhoneEntryScreen = () => {
                 Your number is kept completely secure. We use it to create your Squad virtual account and secure your profile.
               </Text>
             </View>
+
+            {/* Error Message */}
+            {error && (
+              <View style={styles.errorContainer}>
+                <Feather name="alert-circle" size={16} color={COLORS.error} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
           </View>
         </ScrollView>
 
         {/* Footer */}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           <TouchableOpacity 
-            style={[styles.primaryButton, !isValid && styles.inactiveButton]}
-            disabled={!isValid}
-            onPress={() => navigation.navigate('OTPVerification', { phoneNumber })}
+            style={[styles.primaryButton, (!isValid || loading) && styles.inactiveButton]}
+            disabled={!isValid || loading}
+            onPress={handleRequestOtp}
           >
-            <Text style={styles.primaryButtonText}>Continue</Text>
-            <Feather name="arrow-right" size={18} color={COLORS.white} style={{ marginLeft: 8 }} />
+            {loading ? (
+              <ActivityIndicator color={COLORS.white} size="small" />
+            ) : (
+              <>
+                <Text style={styles.primaryButtonText}>Continue</Text>
+                <Feather name="arrow-right" size={18} color={COLORS.white} style={{ marginLeft: 8 }} />
+              </>
+            )}
           </TouchableOpacity>
 
           <Text style={styles.termsText}>
@@ -209,6 +247,23 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.weights.regular,
     color: COLORS.primary,
     lineHeight: 18,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 24,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.error,
+  },
+  errorText: {
+    fontSize: 12,
+    fontFamily: FONTS.weights.regular,
+    color: COLORS.error,
+    marginLeft: 8,
+    flex: 1,
   },
   footer: {
     paddingHorizontal: 24,
