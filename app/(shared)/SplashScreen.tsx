@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, Dimensions, Animated } from 'react-native';
+import { StyleSheet, View, Text, Dimensions, Animated, Image } from 'react-native';
 import { COLORS, FONTS, BORDER_RADIUS } from '../../constants';
 
 const { width } = Dimensions.get('window');
@@ -69,14 +69,17 @@ export default function SplashScreen({ onAnimationComplete }: { onAnimationCompl
         opacity,
         transform: [{ scale }],
       }]}>
-        {/* Kolliq Icon Placeholder */}
-        <View style={styles.iconBox} />
+        {/* Kolliq Logo */}
+        <Image 
+          source={require('../../assets/kolliq-logo.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         
         <Animated.View style={[styles.textContainer, { 
           opacity: textOpacity,
           transform: [{ translateY: textTranslateY }],
         }]}>
-          <Text style={styles.title}>Kolliq</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>FINANCIAL IDENTITY</Text>
           </View>
@@ -109,6 +112,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
+  },
+  logoImage: {
+    width: 280,
+    height: 120,
+    marginBottom: 24,
   },
   textContainer: {
     alignItems: 'center',

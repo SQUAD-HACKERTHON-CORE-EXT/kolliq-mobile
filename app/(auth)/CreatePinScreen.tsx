@@ -8,7 +8,6 @@ import {
   Platform,
   ScrollView,
   TextInput,
-  ActivityIndicator,
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { Feather } from '@expo/vector-icons'
@@ -16,62 +15,50 @@ import { COLORS, FONTS, BORDER_RADIUS } from '../../constants'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAppStore } from '../../store/useAppStore'
-import { authService } from '../../services/auth'
 
-const OTPVerificationScreen = () => {
-  const [otp, setOtp] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const otpInputRef = useRef<TextInput>(null)
+const CreatePinScreen = () => {
+  const [pin, setPin] = useState('')
+  const [confirmPin, setConfirmPin] = useState('')
+  const pinInputRef = useRef<TextInput>(null)
+  const confirmPinInputRef = useRef<TextInput>(null)
   const navigation = useNavigation<any>()
   const insets = useSafeAreaInsets()
-  const { phone, setOnboardingData } = useAppStore((state) => ({
-    phone: state.onboardingData.phone,
-    setOnboardingData: state.setOnboardingData,
-  }))
+  const setOnboardingData = useAppStore((state) => state.setOnboardingData)
 
-  const isComplete = otp.length === 6
-  const isDisabled = !isComplete || loading
+  const pinsMatch = pin === confirmPin && pin.length === 4 && confirmPin.length === 4
+  const isDisabled = !pinsMatch
 
-  const handleOtpChange = (value: string) => {
-    if (/^\d*$/.test(value) && value.length <= 6) {
-      setOtp(value)
-      setError('')
+  const handlePinChange = (value: string) => {
+    if (/^\d*$/.test(value) && value.length <= 4) {
+      setPin(value)
     }
   }
 
-  const handleVerifyOtp = async () => {
-    if (!isComplete || !phone) return
-
-    setLoading(true)
-    setError('')
-
-    try {
-      await authService.verifyOtp(phone, otp)
-      // Success - navigate to PIN creation
-      navigation.navigate('CreatePin')
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to verify OTP'
-      setError(errorMessage)
-      setOtp('')
-    } finally {
-      setLoading(false)
+  const handleConfirmPinChange = (value: string) => {
+    if (/^\d*$/.test(value) && value.length <= 4) {
+      setConfirmPin(value)
     }
   }
 
-  const renderOtpBox = (index: number, value: string) => {
+  const handleContinue = () => {
+    if (pinsMatch) {
+      setOnboardingData({ pin })
+      navigation.navigate('PersonalDetails')
+    }
+  }
+
+  const renderPinBox = (index: number, value: string) => {
     const filled = index < value.length
 
     return (
       <View
         key={`box-${index}`}
         style={[
-          styles.otpBox,
-          filled && styles.otpBoxFilled,
-          error && styles.otpBoxError,
+          styles.pinBox,
+          filled && styles.pinBoxFilled,
         ]}
       >
-        {filled && <View style={styles.otpDot} />}
+        {filled && <View style={styles.pinDot} />}
       </View>
     )
   }
@@ -99,55 +86,64 @@ const OTPVerificationScreen = () => {
 
           {/* Content */}
           <View style={styles.content}>
-            <Text style={styles.heading}>Enter verification code</Text>
+            <Text style={styles.heading}>Create your PIN</Text>
             <Text style={styles.subtext}>
-              We sent a 6-digit code to {phone}. Enter it below.
+              You will use this 4-digit PIN to login and confirm transactions. Keep it safe
             </Text>
 
-            {/* OTP Input Boxes */}
+            {/* PIN Input Boxes */}
             <TouchableOpacity
-              onPress={() => otpInputRef.current?.focus()}
+              onPress={() => pinInputRef.current?.focus()}
               activeOpacity={1}
             >
-              <View style={styles.otpRow}>
-                {Array.from({ length: 6 }).map((_, index) =>
-                  renderOtpBox(index, otp)
+              <View style={styles.pinRow}>
+                {Array.from({ length: 4 }).map((_, index) =>
+                  renderPinBox(index, pin)
                 )}
               </View>
             </TouchableOpacity>
 
-            {/* Hidden OTP Input */}
+            {/* Hidden PIN Input */}
             <TextInput
-              ref={otpInputRef}
+              ref={pinInputRef}
               style={styles.hiddenInput}
               keyboardType="number-pad"
-              maxLength={6}
-              value={otp}
-              onChangeText={handleOtpChange}
+              maxLength={4}
+              value={pin}
+              onChangeText={handlePinChange}
               secureTextEntry={false}
-              editable={!loading}
             />
 
-            {/* Error Message */}
-            {error && (
-              <View style={styles.errorContainer}>
-                <Feather name="alert-circle" size={16} color={COLORS.error} />
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
+            {/* Confirm PIN Section */}
+            <View style={styles.confirmPinSection}>
+              <Text style={styles.confirmLabel}>Confirm your PIN</Text>
+              <TouchableOpacity
+                onPress={() => confirmPinInputRef.current?.focus()}
+                activeOpacity={1}
+              >
+                <View style={styles.pinRow}>
+                  {Array.from({ length: 4 }).map((_, index) =>
+                    renderPinBox(index, confirmPin)
+                  )}
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Hidden Confirm PIN Input */}
+            <TextInput
+              ref={confirmPinInputRef}
+              style={styles.hiddenInput}
+              keyboardType="number-pad"
+              maxLength={4}
+              value={confirmPin}
+              onChangeText={handleConfirmPinChange}
+              secureTextEntry={false}
+            />
 
             {/* Helper text */}
-            <Text style={styles.helperText}>
-              Didn't receive a code?{' '}
-              <Text
-                style={[
-                  styles.helperText,
-                  { color: COLORS.primary, fontFamily: FONTS.weights.semibold },
-                ]}
-              >
-                Resend
-              </Text>
-            </Text>
+            {pin.length === 4 && confirmPin.length === 4 && !pinsMatch && (
+              <Text style={styles.helperText}>Both PINs must match</Text>
+            )}
           </View>
         </ScrollView>
 
@@ -156,13 +152,9 @@ const OTPVerificationScreen = () => {
           <TouchableOpacity
             style={[styles.primaryButton, isDisabled && styles.inactiveButton]}
             disabled={isDisabled}
-            onPress={handleVerifyOtp}
+            onPress={handleContinue}
           >
-            {loading ? (
-              <ActivityIndicator color={COLORS.white} size="small" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Verify</Text>
-            )}
+            <Text style={styles.primaryButtonText}>Continue</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -210,13 +202,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 32,
   },
-  otpRow: {
+  pinRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
-    marginBottom: 24,
   },
-  otpBox: {
+  pinBox: {
     width: 52,
     height: 58,
     borderRadius: 12,
@@ -226,42 +217,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  otpBoxFilled: {
+  pinBoxFilled: {
     borderColor: COLORS.primary,
     backgroundColor: COLORS.selectedBg,
   },
-  otpBoxError: {
-    borderColor: COLORS.error,
-  },
-  otpDot: {
+  pinDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: COLORS.primary,
   },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 24,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.error,
+  confirmPinSection: {
+    marginTop: 24,
+    marginBottom: 16,
   },
-  errorText: {
+  confirmLabel: {
     fontSize: 12,
-    fontFamily: FONTS.weights.regular,
-    color: COLORS.error,
-    marginLeft: 8,
-    flex: 1,
+    fontFamily: FONTS.weights.semibold,
+    color: COLORS.primary,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   helperText: {
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: FONTS.weights.regular,
     color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 16,
+    marginTop: 8,
   },
   footer: {
     paddingHorizontal: 24,
@@ -289,4 +271,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default OTPVerificationScreen
+export default CreatePinScreen

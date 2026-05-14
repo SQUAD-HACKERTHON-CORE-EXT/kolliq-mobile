@@ -10,10 +10,10 @@ import { WalletCard } from '../../components/ui/WalletCard';
 import { formatCurrency, formatNumber } from '../../utils/formatCurrency';
 
 const NAV_TABS = [
-  { id: 'EmployerHome', label: 'Dashboard', icon: 'apps-outline', activeIcon: 'apps' },
-  { id: 'workers', label: 'Workers', icon: 'people-outline' },
+  { id: 'EmployerDashboard', label: 'Dashboard', icon: 'apps-outline', activeIcon: 'apps' },
+  { id: 'Workers', label: 'Workers', icon: 'people-outline' },
   { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline' },
-  { id: 'profile', label: 'Profile', icon: 'person-outline' },
+  { id: 'EmployerProfile', label: 'Profile', icon: 'person-outline' },
 ] as const;
 
 export default function DashboardScreen({ navigation }: any) {
@@ -28,7 +28,7 @@ export default function DashboardScreen({ navigation }: any) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Post Job Hero */}
-        <TouchableOpacity activeOpacity={0.9} style={styles.heroButton}>
+        <TouchableOpacity activeOpacity={0.9} style={styles.heroButton} onPress={() => navigation.navigate('PostJobScreen')}>
           <Card background={COLORS.primary} style={styles.heroCard}>
             <View style={styles.heroIconContainer}>
               <Ionicons name="add" size={32} color={COLORS.primaryLight} />

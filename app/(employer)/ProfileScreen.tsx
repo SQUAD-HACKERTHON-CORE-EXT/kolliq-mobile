@@ -7,10 +7,10 @@ import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout'
 import { Card } from '../../components/ui/Card';
 
 const NAV_TABS = [
-  { id: 'EmployerHome', label: 'Dashboard', icon: 'apps-outline', activeIcon: 'apps' },
-  { id: 'workers', label: 'Workers', icon: 'people-outline' },
+  { id: 'EmployerDashboard', label: 'Dashboard', icon: 'apps-outline', activeIcon: 'apps' },
+  { id: 'Workers', label: 'Workers', icon: 'people-outline' },
   { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline' },
-  { id: 'profile', label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
+  { id: 'EmployerProfile', label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
 ] as const;
 
 export default function EmployerProfile({ navigation }: any) {
@@ -103,7 +103,7 @@ export default function EmployerProfile({ navigation }: any) {
 
       <BottomNav 
         activeTab="profile" 
-        onTabPress={(tab) => navigation.navigate(tab === 'profile' ? 'Profile' : tab)} 
+        onTabPress={(tab) => navigation.navigate(tab === 'profile' ? 'EmployerProfile' : tab)} 
         tabs={NAV_TABS as any}
       />
     </SafeAreaView>

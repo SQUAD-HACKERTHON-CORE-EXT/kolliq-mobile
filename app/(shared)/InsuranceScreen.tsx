@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { DUMMY_INSURANCE } from '../../constants/dummyData';
+import { useAppStore } from '../../store/useAppStore';
+import { getInsurance } from '../../services/financialService';
 
 const PRODUCTS = [
   { id: 'income', title: 'Income Protection', desc: 'Get paid when you cannot work', icon: 'wallet-outline' as const, color: '#3B82F6', bg: 'rgba(59,130,246,0.1)', premium: '₦200/day', coverage: '₦50,000' },
@@ -13,7 +15,27 @@ const PRODUCTS = [
 
 export default function InsuranceScreen({ navigation }: any) {
   const [selected, setSelected] = useState<string | null>(null);
-  const ins = DUMMY_INSURANCE;
+
+  const insuranceUnlocked = useAppStore((state) => state.insuranceUnlocked);
+  const insurance = useAppStore((state) => state.insurance);
+  const setInsurance = useAppStore((state) => state.setInsurance);
+
+  useEffect(() => {
+    loadInsuranceData();
+  }, []);
+
+  const loadInsuranceData = async () => {
+    try {
+      const data = await getInsurance();
+      if (data) {
+        setInsurance(data);
+      }
+    } catch (error) {
+      console.log('Insurance load error:', error);
+    }
+  };
+
+  const ins = insurance || DUMMY_INSURANCE;
 
   return (
     <SafeAreaView style={s.container}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, Animated, Easing, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, Animated, Easing, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../constants';
@@ -95,7 +95,11 @@ const WalletLoadingScreen = () => {
               <View style={styles.infoIconBox}>
                 <Feather name="briefcase" size={18} color={COLORS.primary} />
               </View>
-              <Text style={styles.infoText}>Browse jobs and gigs matching your skills.</Text>
+              <Text style={styles.infoText}>
+                {user?.role === 'employer' ? 'Post jobs and find reliable workers instantly.' :
+                 user?.role === 'trader' ? 'Access micro-loans and grow your business.' :
+                 'Browse jobs and gigs matching your skills.'}
+              </Text>
             </View>
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
@@ -107,7 +111,11 @@ const WalletLoadingScreen = () => {
               <View style={styles.infoIconBox}>
                 <Feather name="shield" size={18} color={COLORS.primary} />
               </View>
-              <Text style={styles.infoText}>Complete gigs to grow your Economic Identity Score.</Text>
+              <Text style={styles.infoText}>
+                {user?.role === 'employer' ? 'Enjoy secure escrow payments powered by Squad.' :
+                 user?.role === 'trader' ? 'Transact regularly to grow your Economic Identity Score.' :
+                 'Complete gigs to grow your Economic Identity Score.'}
+              </Text>
             </View>
           </View>
 
@@ -130,10 +138,11 @@ const WalletLoadingScreen = () => {
       <View style={styles.content}>
         {/* Logo */}
         <View style={styles.logoContainer}>
-          <View style={styles.logoIcon}>
-            <Ionicons name="layers" size={32} color={COLORS.white} />
-          </View>
-          <Text style={styles.logoText}>kolliq</Text>
+          <Image 
+            source={require('../../assets/kolliq-logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={styles.spinnerContainer}>
@@ -319,6 +328,10 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.weights.bold,
     color: COLORS.text,
     letterSpacing: -0.5,
+  },
+  logoImage: {
+    width: 180,
+    height: 80,
   },
   spinnerContainer: {
     marginBottom: 24,

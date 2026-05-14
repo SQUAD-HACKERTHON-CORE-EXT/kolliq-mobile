@@ -23,10 +23,11 @@ const WelcomeScreen = () => {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <View style={styles.logoIcon}>
-              <Ionicons name="layers" size={14} color={COLORS.white} />
-            </View>
-            <Text style={styles.logoText}>kolliq</Text>
+            <Image 
+              source={require('../../assets/kolliq-logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
         </View>
 
@@ -129,6 +130,10 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.weights.bold,
     color: COLORS.text,
     paddingRight: 4, // Prevent 'q' clipping
+  },
+  logoImage: {
+    width: 140,
+    height: 60,
   },
   collageSection: {
     height: height * 0.4,

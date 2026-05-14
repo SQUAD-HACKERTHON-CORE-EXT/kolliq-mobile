@@ -1,12 +1,32 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, LAYOUT } from '../../constants';
 import { DUMMY_SAVINGS } from '../../constants/dummyData';
+import { useAppStore } from '../../store/useAppStore';
+import { getSavings } from '../../services/financialService';
 
 export default function SavingsScreen({ navigation }: any) {
-  const data = DUMMY_SAVINGS;
+  const savings = useAppStore((state) => state.savings);
+  const setSavings = useAppStore((state) => state.setSavings);
+
+  useEffect(() => {
+    loadSavingsData();
+  }, []);
+
+  const loadSavingsData = async () => {
+    try {
+      const data = await getSavings();
+      if (data) {
+        setSavings(data);
+      }
+    } catch (error) {
+      console.log('Savings load error:', error);
+    }
+  };
+
+  const data = savings || DUMMY_SAVINGS;
 
   return (
     <SafeAreaView style={s.container}>

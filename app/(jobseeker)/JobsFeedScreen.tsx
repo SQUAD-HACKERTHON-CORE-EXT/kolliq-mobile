@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { DUMMY_JOBS, DUMMY_USER } from '../../constants/dummyData';
 import { BottomNav } from '../../components/ui/DashboardLayout';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { useAppStore } from '../../store/useAppStore';
+import { getJobsFeed } from '../../services/jobsService';
 
 const NAV_TABS = [
-  { id: 'JobseekerHome', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
+  { id: 'Home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
   { id: 'JobsFeed', label: 'Jobs', icon: 'briefcase-outline', activeIcon: 'briefcase' },
   { id: 'WalletScreen', label: 'Wallet', icon: 'wallet-outline', activeIcon: 'wallet' },
   { id: 'JobseekerProfile', label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
@@ -28,7 +30,32 @@ const FILTER_CHIPS = ['All', 'Delivery', 'Market', 'Construction', 'Cleaning'];
 export default function JobsFeedScreen({ navigation }: any) {
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const jobs = DUMMY_JOBS;
+  const [retryKey, setRetryKey] = useState(0);
+
+  const jobsFeed = useAppStore((state) => state.jobsFeed);
+  const jobsLoading = useAppStore((state) => state.jobsLoading);
+  const user = useAppStore((state) => state.user);
+  
+  const setJobsFeed = useAppStore((state) => state.setJobsFeed);
+  const setJobsLoading = useAppStore((state) => state.setJobsLoading);
+
+  useEffect(() => {
+    loadJobs();
+  }, [retryKey]);
+
+  const loadJobs = async () => {
+    try {
+      setJobsLoading(true);
+      const data = await getJobsFeed();
+      setJobsFeed(data.jobs || []);
+    } catch (error) {
+      console.log('Jobs load error:', error);
+    } finally {
+      setJobsLoading(false);
+    }
+  };
+
+  const jobs = jobsFeed.length > 0 ? jobsFeed : DUMMY_JOBS;
 
   const filteredJobs = jobs.filter((job) => {
     const matchesFilter = activeFilter === 'All' || job.skill_required.toLowerCase() === activeFilter.toLowerCase();
@@ -86,11 +113,20 @@ export default function JobsFeedScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {filteredJobs.length === 0 ? (
+        {jobsLoading && !jobsFeed.length ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : filteredJobs.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={48} color={COLORS.textMuted} />
-            <Text style={styles.emptyTitle}>No jobs found</Text>
-            <Text style={styles.emptySubtitle}>Try adjusting your filters</Text>
+            <Text style={styles.emptyTitle}>No matching jobs right now</Text>
+            <Text style={styles.emptySubtitle}>Check back soon</Text>
+            {jobsLoading === false && jobsFeed.length > 0 && (
+              <TouchableOpacity style={styles.retryButton} onPress={() => setRetryKey(k => k + 1)}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           filteredJobs.map((job) => (

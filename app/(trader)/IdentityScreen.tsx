@@ -12,9 +12,9 @@ import { formatCurrency, formatNumber } from '../../utils/formatCurrency';
 
 const NAV_TABS = [
   { id: 'TraderHome', label: 'Home', icon: 'grid-outline', activeIcon: 'grid' },
-  { id: 'market', label: 'Market', icon: 'cart-outline' },
-  { id: 'identity', label: 'Identity', icon: 'finger-print-outline' },
-  { id: 'account', label: 'Account', icon: 'person-outline' },
+  { id: 'TraderHome', label: 'Market', icon: 'cart-outline' },
+  { id: 'TraderHome', label: 'Identity', icon: 'finger-print-outline' },
+  { id: 'TraderHome', label: 'Account', icon: 'person-outline' },
 ] as const;
 
 export default function IdentityScreen({ navigation }: any) {
