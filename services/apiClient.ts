@@ -23,7 +23,7 @@ const apiClient = axios.create({
 
 // Request Interceptor
 apiClient.interceptors.request.use(
-  async (config) => {
+  async (config: any) => {
     try {
       const token = await SecureStore.getItemAsync('access_token')
       if (token) {
@@ -37,7 +37,7 @@ apiClient.interceptors.request.use(
     }
     return config
   },
-  (error) => Promise.reject(error)
+  (error: any) => Promise.reject(error)
 )
 
 // Response Interceptor
