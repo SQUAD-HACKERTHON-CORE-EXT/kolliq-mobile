@@ -1,0 +1,1 @@
+export const BASE_URL = 'https://django-core.up.railway.app'

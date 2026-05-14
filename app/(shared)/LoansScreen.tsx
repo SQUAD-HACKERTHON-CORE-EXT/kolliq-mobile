@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
-import { DUMMY_LOAN_ELIGIBILITY, DUMMY_USER } from '../../constants/dummyData';
 import { useAppStore } from '../../store/useAppStore';
-import { checkLoanEligibility, getLoans } from '../../services/financialService';
+import { applyLoan, checkLoanEligibility, getLoans } from '../../services/financialService';
+import { getErrorMessage } from '../../utils/handleApiError';
 
 export default function LoansScreen({ navigation }: any) {
   const [loanRequested, setLoanRequested] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [requestError, setRequestError] = useState('');
 
   const loansUnlocked = useAppStore((state) => state.loansUnlocked);
   const eisScore = useAppStore((state) => state.eisScore);
@@ -24,6 +27,8 @@ export default function LoansScreen({ navigation }: any) {
 
   const loadLoanData = async () => {
     try {
+      setIsLoading(true);
+      setLoadError('');
       const [eligData, loansData] = await Promise.all([
         checkLoanEligibility(),
         getLoans(),
@@ -33,15 +38,27 @@ export default function LoansScreen({ navigation }: any) {
         setLoanEligibility(eligData);
       }
       if (loansData) {
-        setActiveLoans(loansData.loans || []);
+        setActiveLoans(loansData);
       }
     } catch (error) {
+      setLoadError(getErrorMessage(error, 'Failed to load loan data'));
       console.log('Loan data load error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const loan = loanEligibility || DUMMY_LOAN_ELIGIBILITY;
-  const user = DUMMY_USER;
+  const handleApplyLoan = async () => {
+    try {
+      setRequestError('');
+      await applyLoan(loan?.max_amount || 0);
+      setLoanRequested(true);
+    } catch (error) {
+      setRequestError(getErrorMessage(error, 'Failed to submit loan request'));
+    }
+  };
+
+  const loan = loanEligibility;
   const isUnlocked = loansUnlocked;
 
   if (!isUnlocked) {
@@ -60,8 +77,8 @@ export default function LoansScreen({ navigation }: any) {
             <Ionicons name="lock-closed" size={48} color={COLORS.textMuted} />
           </View>
           <Text style={styles.lockedTitle}>Loans Not Yet Unlocked</Text>
-          <Text style={styles.lockedSubtitle}>
-            Complete more gigs and grow your EIS Score to at least 60 points to unlock micro-loans.
+            <Text style={styles.lockedSubtitle}>
+            Complete more gigs and grow your EIS Score to unlock micro-loans.
           </Text>
           <View style={styles.lockedProgressCard}>
             <View style={styles.lockedProgressHeader}>
@@ -69,7 +86,7 @@ export default function LoansScreen({ navigation }: any) {
               <Text style={styles.lockedProgressValue}>{eisScore}/50</Text>
             </View>
             <View style={styles.progressBg}>
-              <View style={[styles.progressFill, { width: `${(eisScore / 50) * 100}%` }]} />
+              <View style={[styles.progressFill, { width: `${Math.min((eisScore / 50) * 100, 100)}%` }]} />
             </View>
             <Text style={styles.lockedProgressHint}>
               {Math.max(0, 50 - eisScore)} more points needed
@@ -94,6 +111,19 @@ export default function LoansScreen({ navigation }: any) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {isLoading ? (
+          <View style={styles.loadingBlock}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Loading loan details…</Text>
+          </View>
+        ) : loadError ? (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorText}>{loadError}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={loadLoanData}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
         {/* Eligibility Card */}
         <View style={styles.eligibilityCard}>
           <View style={styles.eligibilityHeader}>
@@ -102,7 +132,7 @@ export default function LoansScreen({ navigation }: any) {
             </View>
             <View>
               <Text style={styles.eligibilityTitle}>You're Eligible!</Text>
-              <Text style={styles.eligibilitySubtitle}>{loan.note}</Text>
+              <Text style={styles.eligibilitySubtitle}>{loan?.note || 'You are eligible to apply.'}</Text>
             </View>
           </View>
         </View>
@@ -116,7 +146,7 @@ export default function LoansScreen({ navigation }: any) {
               <Ionicons name="cash-outline" size={18} color={COLORS.primary} />
               <Text style={styles.detailLabel}>Maximum Amount</Text>
             </View>
-            <Text style={styles.detailValue}>₦{loan.max_amount.toLocaleString()}</Text>
+            <Text style={styles.detailValue}>₦{loan?.max_amount?.toLocaleString() || '0'}</Text>
           </View>
 
           <View style={styles.detailDivider} />
@@ -126,7 +156,7 @@ export default function LoansScreen({ navigation }: any) {
               <Ionicons name="trending-up" size={18} color={COLORS.accent} />
               <Text style={styles.detailLabel}>Interest Rate</Text>
             </View>
-            <Text style={styles.detailValue}>{loan.interest_rate}%</Text>
+            <Text style={styles.detailValue}>{loan?.interest_rate || 0}%</Text>
           </View>
 
           <View style={styles.detailDivider} />
@@ -136,7 +166,7 @@ export default function LoansScreen({ navigation }: any) {
               <Ionicons name="calendar-outline" size={18} color="#3B82F6" />
               <Text style={styles.detailLabel}>Repayment Period</Text>
             </View>
-            <Text style={styles.detailValue}>{loan.tenure_days} days</Text>
+            <Text style={styles.detailValue}>{loan?.tenure_days || 0} days</Text>
           </View>
 
           <View style={styles.detailDivider} />
@@ -146,7 +176,7 @@ export default function LoansScreen({ navigation }: any) {
               <Ionicons name="calculator-outline" size={18} color="#A855F7" />
               <Text style={styles.detailLabel}>Total Repayment</Text>
             </View>
-            <Text style={styles.detailValue}>₦{(loan.max_amount * (1 + loan.interest_rate / 100)).toLocaleString()}</Text>
+            <Text style={styles.detailValue}>₦{loan ? (loan.max_amount * (1 + loan.interest_rate / 100)).toLocaleString() : '0'}</Text>
           </View>
         </View>
 
@@ -160,7 +190,7 @@ export default function LoansScreen({ navigation }: any) {
 
         {/* Apply Button */}
         {!loanRequested ? (
-          <TouchableOpacity style={styles.applyButton} onPress={() => setLoanRequested(true)}>
+          <TouchableOpacity style={styles.applyButton} onPress={handleApplyLoan}>
             <Text style={styles.applyButtonText}>Apply for Loan</Text>
             <Feather name="arrow-right" size={18} color={COLORS.white} />
           </TouchableOpacity>
@@ -171,6 +201,8 @@ export default function LoansScreen({ navigation }: any) {
             <Text style={styles.requestedSubtitle}>Your loan will be reviewed and disbursed to your wallet shortly.</Text>
           </View>
         )}
+
+        {requestError ? <Text style={styles.requestError}>{requestError}</Text> : null}
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -300,6 +332,49 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: FONTS.weights.bold,
     color: COLORS.white,
+  },
+  loadingBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: SPACING.md,
+  },
+  loadingText: {
+    fontSize: 13,
+    fontFamily: FONTS.weights.medium,
+    color: COLORS.textSecondary,
+  },
+  errorCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.18)',
+  },
+  errorText: {
+    fontSize: 13,
+    fontFamily: FONTS.weights.medium,
+    color: '#B91C1C',
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+  },
+  retryButtonText: {
+    fontSize: 12,
+    fontFamily: FONTS.weights.bold,
+    color: COLORS.white,
+  },
+  requestError: {
+    marginTop: 10,
+    fontSize: 13,
+    fontFamily: FONTS.weights.medium,
+    color: '#B91C1C',
   },
   // Unlocked state
   eligibilityCard: {

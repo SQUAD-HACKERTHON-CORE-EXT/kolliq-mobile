@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Act
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { DUMMY_JOB_DETAIL } from '../../constants/dummyData';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 export default function JobDetailScreen() {
   const navigation = useNavigation<any>();
@@ -24,22 +24,10 @@ export default function JobDetailScreen() {
     );
   }
 
-  // replace with real API call to GET /jobs/:id using nodeClient
-  const job = {
-    title: params.title || DUMMY_JOB_DETAIL.title,
-    employer: params.employer || DUMMY_JOB_DETAIL.employer,
-    rating: params.rating || DUMMY_JOB_DETAIL.rating,
-    location: params.location || DUMMY_JOB_DETAIL.location,
-    duration: params.duration || DUMMY_JOB_DETAIL.duration,
-    startTime: params.startTime || DUMMY_JOB_DETAIL.startTime,
-    workersNeeded: params.workersNeeded || DUMMY_JOB_DETAIL.workersNeeded,
-    description: params.description || DUMMY_JOB_DETAIL.description,
-    pay: params.pay || DUMMY_JOB_DETAIL.pay,
-  };
+  const job = params.job || params;
 
   const handleAcceptGig = () => {
-    // replace with real API call to POST /jobs/:id/accept using nodeClient
-    navigation.navigate('AcceptJobScreen', job);
+    navigation.navigate('AcceptJob', { job });
   };
 
   return (
@@ -55,9 +43,9 @@ export default function JobDetailScreen() {
           <View style={styles.iconContainer}>
             <Ionicons name="briefcase-outline" size={28} color="#1B4D3E" />
           </View>
-          <Text style={styles.title}>{job.title}</Text>
+          <Text style={styles.title}>{job.title || 'Job detail'}</Text>
           <View style={styles.employerRow}>
-            <Text style={styles.employerText}>{job.employer}</Text>
+            <Text style={styles.employerText}>{job.employer || 'Employer'}</Text>
             <Ionicons name="star" size={14} color="#F4721E" style={{ marginLeft: 4, marginRight: 2 }} />
             <Text style={styles.employerText}>{job.rating}</Text>
           </View>
@@ -71,19 +59,19 @@ export default function JobDetailScreen() {
         <View style={styles.infoSection}>
           <View style={styles.infoRow}>
             <Ionicons name="location-outline" size={20} color="#888880" />
-            <Text style={styles.infoText}>{job.location}</Text>
+            <Text style={styles.infoText}>{job.location || 'Location unavailable'}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="time-outline" size={20} color="#888880" />
-            <Text style={styles.infoText}>{job.duration} hours</Text>
+            <Text style={styles.infoText}>{job.duration || '—'} hours</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={20} color="#888880" />
-            <Text style={styles.infoText}>{job.startTime}</Text>
+            <Text style={styles.infoText}>{job.startTime || '—'}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="people-outline" size={20} color="#888880" />
-            <Text style={styles.infoText}>{job.workersNeeded} workers needed</Text>
+            <Text style={styles.infoText}>{job.workersNeeded || '—'} workers needed</Text>
           </View>
         </View>
 
@@ -91,12 +79,12 @@ export default function JobDetailScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About this job</Text>
-          <Text style={styles.descriptionText}>{job.description}</Text>
+          <Text style={styles.descriptionText}>{job.description || 'No description available.'}</Text>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pay</Text>
-          <Text style={styles.payText}>{job.pay}</Text>
+          <Text style={styles.payText}>{formatCurrency(job.pay_per_worker ?? job.pay ?? 0)}</Text>
         </View>
       </ScrollView>
 

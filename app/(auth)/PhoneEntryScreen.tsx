@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/useAppStore';
 import { authService } from '../../services/auth';
+import { getErrorMessage } from '../../utils/handleApiError';
 
 const { width } = Dimensions.get('window');
 
@@ -32,7 +33,7 @@ const PhoneEntryScreen = () => {
       setOnboardingData({ phone: phoneNumber });
       navigation.navigate('OTPVerification');
     } catch (err: any) {
-      const errorMessage = err.message || 'Failed to request OTP. Please try again.';
+      const errorMessage = getErrorMessage(err, 'Failed to request OTP. Please try again.');
       setError(errorMessage);
     } finally {
       setLoading(false);

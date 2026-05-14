@@ -6,6 +6,10 @@ interface User {
   phone: string
   full_name: string
   role: 'worker' | 'employer' | 'trader'
+  squad_account_number?: string
+  squad_bank_name?: string
+  walletAccountNumber?: string
+  walletBankName?: string
   email?: string
   location_city?: string
   skills?: string[]

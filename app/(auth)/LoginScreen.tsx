@@ -19,7 +19,7 @@ import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAppStore } from '../../store/useAppStore'
 import { authService } from '../../services/auth'
-import * as SecureStore from 'expo-secure-store'
+import { getErrorMessage } from '../../utils/handleApiError'
 
 const LoginScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -65,30 +65,23 @@ const LoginScreen = () => {
       console.log('🔐 Login attempt with:', { phone: phoneNumber, pinLength: pin.length })
       const response = await authService.login(phoneNumber, pin)
       console.log('✅ Login response:', response)
-      
-      const { tokens, user } = response
 
-      // Store tokens in SecureStore
-      console.log('💾 Storing tokens...')
-      await SecureStore.setItemAsync('access_token', tokens.access)
-      await SecureStore.setItemAsync('refresh_token', tokens.refresh)
-      await SecureStore.setItemAsync('role', user.role)
-
-      // Update Zustand store
-      const userData: any = {
-        id: user.id,
-        phone: user.phone,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role,
-      }
-      console.log('📝 Updating store with:', userData)
-      useAppStore.getState().setUser(userData)
+      useAppStore.getState().setUser({
+        id: response.id,
+        phone: response.phone,
+        full_name: response.full_name,
+        role: response.role,
+        squad_account_number: response.squad_account_number,
+        squad_bank_name: response.squad_bank_name,
+        walletAccountNumber: response.squad_account_number,
+        walletBankName: response.squad_bank_name,
+        eis_score: 0,
+      })
       useAppStore.getState().setLoggedIn(true)
 
       // Navigate to correct dashboard based on role
-      console.log('🗺️ Navigating based on role:', user.role)
-      if (user.role === 'worker') {
+      console.log('🗺️ Navigating based on role:', response.role)
+      if (response.role === 'worker') {
         console.log('→ Going to Home')
         try {
           navigation.navigate('Home')
@@ -96,7 +89,7 @@ const LoginScreen = () => {
         } catch (navError) {
           console.error('❌ Navigation error:', navError)
         }
-      } else if (user.role === 'employer') {
+      } else if (response.role === 'employer') {
         console.log('→ Going to EmployerDashboard')
         try {
           navigation.navigate('EmployerDashboard')
@@ -104,7 +97,7 @@ const LoginScreen = () => {
         } catch (navError) {
           console.error('❌ Navigation error:', navError)
         }
-      } else if (user.role === 'trader') {
+      } else if (response.role === 'trader') {
         console.log('→ Going to TraderHome')
         try {
           navigation.navigate('TraderHome')
@@ -113,12 +106,12 @@ const LoginScreen = () => {
           console.error('❌ Navigation error:', navError)
         }
       } else {
-        console.warn('⚠️ Unknown role:', user.role)
+        console.warn('⚠️ Unknown role:', response.role)
         setError('Unknown user role returned from server')
       }
     } catch (error: any) {
       console.error('❌ Login error:', error)
-      const errorMessage = error.message || 'An error occurred during login'
+      const errorMessage = getErrorMessage(error, 'An error occurred during login')
       setError(errorMessage)
     } finally {
       setLoading(false)

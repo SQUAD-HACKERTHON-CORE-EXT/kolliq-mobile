@@ -3,10 +3,15 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Act
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { DUMMY_CATEGORIES } from '../../constants/dummyData';
+import { useAppStore } from '../../store/useAppStore';
+import { getCategories } from '../../services/marketplaceService';
+import { createJob } from '../../services/jobsService';
+import { getErrorMessage } from '../../utils/handleApiError';
 
 export default function PostJobScreen() {
   const navigation = useNavigation<any>();
+  const categories = useAppStore((state) => state.categories);
+  const setCategories = useAppStore((state) => state.setCategories);
   
   let [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -22,6 +27,26 @@ export default function PostJobScreen() {
   const [duration, setDuration] = useState('');
   const [pay, setPay] = useState('');
   const [description, setDescription] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState('');
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [categoryError, setCategoryError] = useState('');
+
+  React.useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setLoadingCategories(true)
+        setCategoryError('')
+        const data = await getCategories();
+        setCategories(data)
+      } catch (error: any) {
+        setCategoryError(getErrorMessage(error, 'Failed to load categories'))
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+    loadCategories()
+  }, [])
 
   if (!fontsLoaded) {
     return (
@@ -33,20 +58,40 @@ export default function PostJobScreen() {
 
   const isValid = category !== '' && title !== '' && location !== '' && pay !== '';
   const totalAmount = isValid ? parseInt(pay || '0', 10) * parseInt(workers.replace('+', ''), 10) : 0;
+  const selectedCategory = categories.find((cat: any) => (cat.id || cat.slug || cat.name) === category)
 
-  const handlePostJob = () => {
+  const handlePostJob = async () => {
     if (!isValid) return;
-    
-    // replace with real API call to POST /jobs/create using nodeClient
-    const dummyResponse = {
-      job_id: 'J' + Math.floor(Math.random() * 1000000),
-      escrow_account: '9876543210',
-      bank_name: 'GTBank',
-      amount: totalAmount.toString(),
-      reference: 'SQD-' + Math.floor(Math.random() * 100000000).toString(16).toUpperCase(),
-    };
 
-    navigation.navigate('EscrowInstructions', dummyResponse);
+    try {
+      setPosting(true);
+      setPostError('');
+
+      const result: any = await createJob({
+        title,
+        description: description || undefined,
+        location_area: location,
+        pay_per_worker: parseInt(pay, 10),
+        workers_needed: parseInt(workers.replace('+', ''), 10),
+        required_skills: category ? [category] : [],
+        start_date: date !== 'Select date and time' ? date : undefined,
+        availability: duration || undefined,
+      });
+
+      const payload = result?.escrow_account || result?.bank_name ? result : result?.job || result;
+
+      navigation.navigate('EscrowInstructions', {
+        job_id: payload.job_id || payload.id || `J${Date.now()}`,
+        escrow_account: payload.escrow_account || payload.account_number || '—',
+        bank_name: payload.bank_name || payload.bank || 'Squad',
+        amount: String(payload.amount || totalAmount),
+        reference: payload.reference || `SQD-${Date.now()}`,
+      });
+    } catch (error: any) {
+      setPostError(getErrorMessage(error, 'Failed to post job'));
+    } finally {
+      setPosting(false);
+    }
   };
 
   return (
@@ -63,14 +108,24 @@ export default function PostJobScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>What kind of work</Text>
+            {loadingCategories ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#1B4D3E" />
+                <Text style={styles.loadingText}>Loading categories…</Text>
+              </View>
+            ) : categoryError ? (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorText}>{categoryError}</Text>
+              </View>
+            ) : null}
             <View style={styles.pillGrid}>
-              {DUMMY_CATEGORIES.map(cat => (
+              {categories.map((cat: any) => (
                 <TouchableOpacity
-                  key={cat}
-                  style={[styles.pill, category === cat && styles.pillSelected]}
-                  onPress={() => setCategory(cat)}
+                  key={cat.id || cat.slug || cat.name}
+                  style={[styles.pill, category === (cat.id || cat.name) && styles.pillSelected]}
+                  onPress={() => setCategory(cat.id || cat.name)}
                 >
-                  <Text style={[styles.pillText, category === cat && styles.pillTextSelected]}>{cat}</Text>
+                  <Text style={[styles.pillText, category === (cat.id || cat.name) && styles.pillTextSelected]}>{cat.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -171,16 +226,18 @@ export default function PostJobScreen() {
         </ScrollView>
 
         <View style={styles.bottomFixed}>
+          {postError ? <Text style={styles.errorText}>{postError}</Text> : null}
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Escrow Amount</Text>
             <Text style={styles.summaryValue}>₦{totalAmount.toLocaleString()}</Text>
           </View>
+          {selectedCategory ? <Text style={styles.selectedCategoryText}>{selectedCategory.name}</Text> : null}
           <TouchableOpacity 
             style={[styles.primaryButton, !isValid && styles.primaryButtonDisabled]} 
             onPress={handlePostJob}
-            disabled={!isValid}
+            disabled={!isValid || posting}
           >
-            <Text style={styles.primaryButtonText}>Preview and Post Job</Text>
+            <Text style={styles.primaryButtonText}>{posting ? 'Posting…' : 'Preview and Post Job'}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -198,6 +255,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F5F5F0',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  loadingText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: '#66665C',
+  },
+  errorCard: {
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.18)',
   },
   header: {
     flexDirection: 'row',
@@ -343,6 +419,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E0E0D8',
   },
+  errorText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: '#B91C1C',
+    marginBottom: 10,
+  },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -357,6 +439,12 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 17,
+    color: '#1B4D3E',
+  },
+  selectedCategoryText: {
+    marginTop: 8,
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
     color: '#1B4D3E',
   },
   primaryButton: {

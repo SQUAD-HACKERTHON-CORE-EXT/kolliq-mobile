@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAppStore } from '../../store/useAppStore'
 import { authService } from '../../services/auth'
+import { getErrorMessage } from '../../utils/handleApiError'
 import * as SecureStore from 'expo-secure-store'
 
 const OnboardingReviewScreen = () => {
@@ -26,7 +27,7 @@ const OnboardingReviewScreen = () => {
   const handleRegister = async () => {
     setLoading(true)
     try {
-      // Build registration data for Node.js middleware /auth/complete-profile
+      // Build registration data for the live /api/auth/register/ endpoint
       const registrationData: any = {
         // Required fields
         phone: onboardingData.phone!,
@@ -114,7 +115,7 @@ const OnboardingReviewScreen = () => {
       
       navigation.navigate('SuccessScreen')
     } catch (error: any) {
-      const errorMsg = error.message || 'An error occurred during registration'
+      const errorMsg = getErrorMessage(error, 'An error occurred during registration')
       
       if (errorMsg.includes('phone') || errorMsg.includes('already exists')) {
         Alert.alert(

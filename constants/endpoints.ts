@@ -2,17 +2,17 @@ export const ENDPOINTS = {
   // Auth endpoints - Node.js middleware
   REQUEST_OTP: '/auth/request-otp',
   VERIFY_OTP: '/auth/verify-otp',
-  REGISTER: '/auth/complete-profile',
-  LOGIN: '/auth/login',
-  LOGOUT: '/auth/logout',
-  CHANGE_PIN: '/auth/change-pin',
-  RESET_PIN_REQUEST: '/auth/reset-pin/request',
-  RESET_PIN_CONFIRM: '/auth/reset-pin/confirm',
+  REGISTER: '/api/auth/register/',
+  LOGIN: '/api/auth/login/',
+  LOGOUT: '/api/auth/logout/',
+  CHANGE_PIN: '/api/auth/change-pin/',
+  RESET_PIN_REQUEST: '/api/auth/reset-pin/request/',
+  RESET_PIN_CONFIRM: '/api/auth/reset-pin/confirm/',
   
   // User profile - Django via middleware
-  ME: '/api/users/auth/me/',
-  PROFILE: '/api/users/auth/profile/',
-  UPDATE_PROFILE: '/api/users/auth/profile/',
+  ME: '/api/auth/me/',
+  PROFILE: '/api/auth/profile/',
+  UPDATE_PROFILE: '/api/auth/profile/',
   
   // Wallet - Django via middleware
   WALLET: '/api/wallets/',

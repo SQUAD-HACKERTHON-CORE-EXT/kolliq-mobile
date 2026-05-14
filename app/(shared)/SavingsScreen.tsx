@@ -3,9 +3,9 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, LAYOUT } from '../../constants';
-import { DUMMY_SAVINGS } from '../../constants/dummyData';
 import { useAppStore } from '../../store/useAppStore';
 import { getSavings } from '../../services/financialService';
+import { getErrorMessage } from '../../utils/handleApiError';
 
 export default function SavingsScreen({ navigation }: any) {
   const savings = useAppStore((state) => state.savings);
@@ -22,11 +22,11 @@ export default function SavingsScreen({ navigation }: any) {
         setSavings(data);
       }
     } catch (error) {
-      console.log('Savings load error:', error);
+      console.log('Savings load error:', getErrorMessage(error, 'Failed to load savings data'));
     }
   };
 
-  const data = savings || DUMMY_SAVINGS;
+  const data = savings;
 
   return (
     <SafeAreaView style={s.container}>
@@ -47,21 +47,21 @@ export default function SavingsScreen({ navigation }: any) {
               <Text style={s.activeText}>Active</Text>
             </View>
           </View>
-          <Text style={s.balance}>₦{parseFloat(data.savings.balance).toLocaleString()}.00</Text>
+          <Text style={s.balance}>₦{parseFloat(data?.balance || '0').toLocaleString()}.00</Text>
           <View style={s.statsRow}>
             <View style={s.stat}>
               <Text style={s.statLabel}>Interest Earned</Text>
-              <Text style={s.statVal}>₦{parseFloat(data.savings.total_interest_earned).toLocaleString()}</Text>
+              <Text style={s.statVal}>₦{parseFloat(data?.total_interest_earned || '0').toLocaleString()}</Text>
             </View>
             <View style={s.statDiv} />
             <View style={s.stat}>
               <Text style={s.statLabel}>Annual Rate</Text>
-              <Text style={s.statVal}>{data.annual_interest_rate}%</Text>
+              <Text style={s.statVal}>{data?.annual_interest_rate || 0}%</Text>
             </View>
             <View style={s.statDiv} />
             <View style={s.stat}>
               <Text style={s.statLabel}>Wallet</Text>
-              <Text style={s.statVal}>₦{parseFloat(data.wallet_balance).toLocaleString()}</Text>
+              <Text style={s.statVal}>₦{parseFloat(data?.wallet_balance || '0').toLocaleString()}</Text>
             </View>
           </View>
         </View>
@@ -98,7 +98,7 @@ export default function SavingsScreen({ navigation }: any) {
         <Text style={s.sectionTitle}>How Savings Work</Text>
         <View style={s.infoCard}>
           <InfoItem icon="cash-outline" text="₦200 auto-saved daily from earnings" />
-          <InfoItem icon="trending-up" text={`${data.annual_interest_rate}% annual interest on your balance`} />
+          <InfoItem icon="trending-up" text={`${data?.annual_interest_rate || 0}% annual interest on your balance`} />
           <InfoItem icon="lock-open-outline" text="Withdraw anytime to your wallet" />
           <InfoItem icon="shield-checkmark-outline" text="Savings grow your EIS score faster" />
         </View>

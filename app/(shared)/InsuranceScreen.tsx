@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
-import { DUMMY_INSURANCE } from '../../constants/dummyData';
 import { useAppStore } from '../../store/useAppStore';
-import { getInsurance } from '../../services/financialService';
+import { activateInsurance, getInsurance } from '../../services/financialService';
+import { getErrorMessage } from '../../utils/handleApiError';
 
 const PRODUCTS = [
   { id: 'income', title: 'Income Protection', desc: 'Get paid when you cannot work', icon: 'wallet-outline' as const, color: '#3B82F6', bg: 'rgba(59,130,246,0.1)', premium: '₦200/day', coverage: '₦50,000' },
@@ -15,6 +15,10 @@ const PRODUCTS = [
 
 export default function InsuranceScreen({ navigation }: any) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [activating, setActivating] = useState(false);
 
   const insuranceUnlocked = useAppStore((state) => state.insuranceUnlocked);
   const insurance = useAppStore((state) => state.insurance);
@@ -26,16 +30,35 @@ export default function InsuranceScreen({ navigation }: any) {
 
   const loadInsuranceData = async () => {
     try {
+      setIsLoading(true);
+      setLoadError('');
       const data = await getInsurance();
       if (data) {
         setInsurance(data);
       }
     } catch (error) {
+      setLoadError(getErrorMessage(error, 'Failed to load insurance data'));
       console.log('Insurance load error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const ins = insurance || DUMMY_INSURANCE;
+  const handleActivate = async () => {
+    try {
+      setActivating(true);
+      setActionError('');
+      await activateInsurance();
+      await loadInsuranceData();
+      setSelected(null);
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Failed to activate insurance'));
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  const ins = insurance;
 
   return (
     <SafeAreaView style={s.container}>
@@ -45,11 +68,24 @@ export default function InsuranceScreen({ navigation }: any) {
         <View style={{ width: 40 }} />
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
-        <View style={[s.banner, ins.active ? s.bannerActive : s.bannerInactive]}>
-          <Ionicons name={ins.active ? 'shield-checkmark' : 'shield-outline'} size={22} color={ins.active ? '#10B981' : COLORS.accent} />
+        {isLoading ? (
+          <View style={s.loadingRow}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={s.loadingText}>Loading insurance details…</Text>
+          </View>
+        ) : loadError ? (
+          <View style={s.errorCard}>
+            <Text style={s.errorText}>{loadError}</Text>
+            <TouchableOpacity style={s.retryButton} onPress={loadInsuranceData}>
+              <Text style={s.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+        <View style={[s.banner, ins?.active ? s.bannerActive : s.bannerInactive]}>
+          <Ionicons name={ins?.active ? 'shield-checkmark' : 'shield-outline'} size={22} color={ins?.active ? '#10B981' : COLORS.accent} />
           <View style={{ flex: 1 }}>
-            <Text style={[s.bannerTitle, { color: ins.active ? '#10B981' : COLORS.accent }]}>{ins.active ? 'Insurance Active' : 'No Active Coverage'}</Text>
-            <Text style={s.bannerSub}>{ins.active ? `₦${parseFloat(ins.premium_per_day).toLocaleString()}/day` : 'Choose a plan below'}</Text>
+            <Text style={[s.bannerTitle, { color: ins?.active ? '#10B981' : COLORS.accent }]}>{ins?.active ? 'Insurance Active' : 'No Active Coverage'}</Text>
+            <Text style={s.bannerSub}>{ins?.active ? `₦${parseFloat(ins.premium_per_day || '0').toLocaleString()}/day` : 'Choose a plan below'}</Text>
           </View>
         </View>
         <Text style={s.section}>Available Plans</Text>
@@ -68,11 +104,12 @@ export default function InsuranceScreen({ navigation }: any) {
           </TouchableOpacity>
         ))}
         {selected && (
-          <TouchableOpacity style={s.activateBtn}>
-            <Text style={s.activateText}>Activate {PRODUCTS.find(p => p.id === selected)?.title}</Text>
+          <TouchableOpacity style={s.activateBtn} onPress={handleActivate} disabled={activating}>
+            <Text style={s.activateText}>{activating ? 'Activating…' : `Activate ${PRODUCTS.find(p => p.id === selected)?.title}`}</Text>
             <Feather name="arrow-right" size={18} color={COLORS.white} />
           </TouchableOpacity>
         )}
+        {actionError ? <Text style={s.actionError}>{actionError}</Text> : null}
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -105,4 +142,11 @@ const s = StyleSheet.create({
   divider: { width: 1, backgroundColor: COLORS.border },
   activateBtn: { backgroundColor: COLORS.primary, height: 56, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 },
   activateText: { fontSize: 15, fontFamily: FONTS.weights.bold, color: COLORS.white },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: SPACING.md },
+  loadingText: { fontSize: 13, fontFamily: FONTS.weights.medium, color: COLORS.textSecondary },
+  errorCard: { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderRadius: 14, padding: 14, marginBottom: SPACING.md, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.18)' },
+  errorText: { fontSize: 13, fontFamily: FONTS.weights.medium, color: '#B91C1C' },
+  retryButton: { alignSelf: 'flex-start', marginTop: 10, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: COLORS.primary },
+  retryText: { fontSize: 12, fontFamily: FONTS.weights.bold, color: COLORS.white },
+  actionError: { marginTop: 10, fontSize: 13, fontFamily: FONTS.weights.medium, color: '#B91C1C' },
 });

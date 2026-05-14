@@ -4,7 +4,6 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { DUMMY_ESCROW_INSTRUCTIONS } from '../../constants/dummyData';
 
 export default function EscrowInstructionsScreen() {
   const navigation = useNavigation<any>();
@@ -27,10 +26,10 @@ export default function EscrowInstructionsScreen() {
 
   // replace with real API call to GET /payments/escrow-instructions using djangoClient
   const instructions = {
-    accountNumber: params.escrow_account || DUMMY_ESCROW_INSTRUCTIONS.accountNumber,
-    bank: params.bank_name || DUMMY_ESCROW_INSTRUCTIONS.bank,
-    amount: params.amount ? `₦${parseInt(params.amount as string).toLocaleString()}` : DUMMY_ESCROW_INSTRUCTIONS.amount,
-    reference: params.reference || DUMMY_ESCROW_INSTRUCTIONS.reference,
+    accountNumber: params.escrow_account || '—',
+    bank: params.bank_name || '—',
+    amount: params.amount ? `₦${parseInt(params.amount as string).toLocaleString()}` : '—',
+    reference: params.reference || '—',
   };
 
   const handleCopy = async (text: string) => {

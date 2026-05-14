@@ -3,7 +3,7 @@ import { ENDPOINTS } from '../constants/endpoints'
 
 export const getWallet = async () => {
   const response = await apiClient.get(ENDPOINTS.WALLET)
-  return response.data
+  return response as any
 }
 
 export const waitForWallet = async (): Promise<any> => {
@@ -38,12 +38,12 @@ export const waitForWallet = async (): Promise<any> => {
 
 export const getBanks = async () => {
   const response = await apiClient.get(ENDPOINTS.BANKS)
-  return response.data
+  return response as any
 }
 
 export const getBankAccount = async () => {
   const response = await apiClient.get(ENDPOINTS.BANK_ACCOUNT)
-  return response.data
+  return response as any
 }
 
 export const verifyBankAccount = async (
@@ -54,7 +54,7 @@ export const verifyBankAccount = async (
     bank_code,
     account_number,
   })
-  return response.data
+  return response as any
 }
 
 export const saveBankAccount = async (data: {
@@ -66,10 +66,10 @@ export const saveBankAccount = async (data: {
     ...data,
     confirm: true,
   })
-  return response.data
+  return response as any
 }
 
 export const getTransactions = async () => {
   const response = await apiClient.get(ENDPOINTS.TRANSACTIONS)
-  return response.data
+  return response as any
 }

@@ -1,10 +1,11 @@
 import axios, { AxiosInstance } from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { API_CONFIG } from '../constants';
+import { BASE_URL } from '../constants/api';
+import { extractApiErrorMessage } from '../utils/handleApiError';
 
 const api: AxiosInstance = axios.create({
-  baseURL: API_CONFIG.BASE_URL,
-  timeout: API_CONFIG.TIMEOUT,
+  baseURL: BASE_URL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -42,7 +43,7 @@ api.interceptors.response.use(
     }
     
     // Normalize error message
-    const message = error.response?.data?.error || error.response?.data?.message || error.message || 'An unexpected error occurred';
+    const message = extractApiErrorMessage(error, 'An unexpected error occurred');
     console.error('📥 API - Error message:', message)
     return Promise.reject(new Error(message));
   }

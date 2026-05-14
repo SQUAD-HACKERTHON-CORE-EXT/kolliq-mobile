@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicat
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { DUMMY_JOB_DETAIL } from '../../constants/dummyData';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 export default function AcceptJobScreen() {
   const navigation = useNavigation<any>();
@@ -24,13 +24,7 @@ export default function AcceptJobScreen() {
     );
   }
 
-  // replace with real API call to GET /jobs/:id/status using nodeClient
-  const job = {
-    title: params.title || DUMMY_JOB_DETAIL.title,
-    employer: params.employer || DUMMY_JOB_DETAIL.employer,
-    location: params.location || DUMMY_JOB_DETAIL.location,
-    pay: params.pay || DUMMY_JOB_DETAIL.pay,
-  };
+  const job = params.job || params;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -49,22 +43,22 @@ export default function AcceptJobScreen() {
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.label}>Job</Text>
-            <Text style={styles.value}>{job.title}</Text>
+            <Text style={styles.value}>{job.title || 'Job'}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>
             <Text style={styles.label}>Employer</Text>
-            <Text style={styles.value}>{job.employer}</Text>
+            <Text style={styles.value}>{job.employer || 'Employer'}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>
             <Text style={styles.label}>Location</Text>
-            <Text style={styles.value}>{job.location}</Text>
+            <Text style={styles.value}>{job.location || 'Location unavailable'}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>
             <Text style={styles.label}>Your Pay</Text>
-            <Text style={styles.payValue}>{job.pay}</Text>
+            <Text style={styles.payValue}>{formatCurrency(job.pay_per_worker ?? job.pay ?? 0)}</Text>
           </View>
         </View>
 
@@ -74,7 +68,7 @@ export default function AcceptJobScreen() {
             <Text style={styles.protectionTitle}>Payment Protection</Text>
           </View>
           <Text style={styles.protectionText}>
-            Your payment of {job.pay} is held securely in a Squad escrow account. It will be released to your Kolliq wallet the moment the employer confirms the job is complete.
+            Your payment of {formatCurrency(job.pay_per_worker ?? job.pay ?? 0)} is held securely in a Squad escrow account. It will be released to your Kolliq wallet the moment the employer confirms the job is complete.
           </Text>
         </View>
       </View>

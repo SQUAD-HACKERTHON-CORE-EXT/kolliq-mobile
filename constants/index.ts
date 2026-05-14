@@ -106,8 +106,10 @@ export const LAYOUT = {
   inputHeight: 54,
 };
 
+import { BASE_URL } from './api';
+
 export const API_CONFIG = {
-  BASE_URL: 'https://node-middleware.up.railway.app',
+  BASE_URL,
   TIMEOUT: 30000,
 };
 

@@ -3,12 +3,11 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Clipboard, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
-import { DUMMY_WALLET, DUMMY_TRANSACTIONS, DUMMY_USER, DUMMY_SAVINGS } from '../../constants/dummyData';
 import { BottomNav } from '../../components/ui/DashboardLayout';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useAppStore } from '../../store/useAppStore';
 import { getWallet, getTransactions } from '../../services/walletService';
-import { handleApiError } from '../../utils/handleApiError';
+import { getErrorMessage } from '../../utils/handleApiError';
 
 const WALLET_TABS = ['Overview', 'Transactions', 'Savings'];
 
@@ -29,7 +28,7 @@ export default function WalletScreen({ navigation }: any) {
   const setTransactionsLoading = useAppStore((state) => state.setTransactionsLoading);
 
   const user = useAppStore((state) => state.user);
-  const userName = user?.full_name || DUMMY_USER.full_name;
+  const userName = user?.full_name || 'Wallet';
 
   const isLoading = walletLoading || transactionsLoading;
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -45,18 +44,18 @@ export default function WalletScreen({ navigation }: any) {
       setTransactionsLoading(true);
 
       const [walletData, txData] = await Promise.all([
-        getWallet(),
-        getTransactions(),
+        getWallet() as any,
+        getTransactions() as any,
       ]);
 
       if (walletData) {
         setWallet(walletData);
       }
       if (txData) {
-        setTransactions(txData.transactions || []);
+        setTransactions(txData.transactions || txData || []);
       }
     } catch (error: any) {
-      setLoadError(error?.message || 'Failed to load wallet data');
+      setLoadError(getErrorMessage(error, 'Failed to load wallet data'));
       console.log('Wallet load error:', error);
     } finally {
       setWalletLoading(false);
@@ -111,10 +110,13 @@ export default function WalletScreen({ navigation }: any) {
     return date.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Use wallet data or fallback to dummy
-  const displayWallet = wallet || DUMMY_WALLET;
-  const displayTransactions = transactions.length > 0 ? transactions : DUMMY_TRANSACTIONS;
-  const displaySavings = DUMMY_SAVINGS;
+  const displayWallet = wallet;
+  const displayTransactions = transactions;
+  const displaySavings = {
+    balance: wallet?.savings_balance || '0',
+    total_interest_earned: '0',
+    annual_interest_rate: 0,
+  };
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -123,14 +125,14 @@ export default function WalletScreen({ navigation }: any) {
           <Feather name="arrow-left" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Wallet</Text>
-        <TouchableOpacity style={styles.settingsButton}>
+        <TouchableOpacity style={styles.settingsButton} onPress={() => navigation.navigate('ChangePin')}>
           <Ionicons name="settings-outline" size={20} color={COLORS.text} />
         </TouchableOpacity>
       </View>
 
       {isLoading && !wallet ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color="#1B4D3E" />
         </View>
       ) : loadError && !wallet ? (
         <View style={styles.centerContainer}>
@@ -154,7 +156,7 @@ export default function WalletScreen({ navigation }: any) {
             <View style={styles.balanceRow}>
               <Text style={styles.currency}>₦</Text>
               <Text style={styles.balanceAmount}>
-                {balanceVisible ? parseFloat(displayWallet.balance).toLocaleString('en-NG') : '••••••'}
+                {balanceVisible ? parseFloat(displayWallet?.balance || '0').toLocaleString('en-NG') : '••••••'}
               </Text>
               <Text style={styles.decimal}>{balanceVisible ? '.00' : ''}</Text>
             </View>
@@ -163,8 +165,8 @@ export default function WalletScreen({ navigation }: any) {
             <TouchableOpacity style={styles.accountInfoRow} onPress={handleCopy}>
               <View style={styles.accountInfoLeft}>
                 <Ionicons name="card-outline" size={16} color="rgba(255,255,255,0.7)" />
-                <Text style={styles.accountNumber}>{displayWallet.account_number}</Text>
-                <Text style={styles.bankName}>• {displayWallet.bank_name}</Text>
+                <Text style={styles.accountNumber}>{displayWallet?.account_number || '—'}</Text>
+                <Text style={styles.bankName}>• {displayWallet?.bank_name || '—'}</Text>
               </View>
               <View style={styles.copyBadge}>
                 <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={14} color={COLORS.primary} />
@@ -227,11 +229,11 @@ export default function WalletScreen({ navigation }: any) {
             <View style={styles.overviewStatsRow}>
               <View style={styles.overviewStatCard}>
                 <Text style={styles.overviewStatLabel}>Savings</Text>
-                <Text style={styles.overviewStatValue}>₦{parseFloat(wallet.savings_balance).toLocaleString()}</Text>
+                <Text style={styles.overviewStatValue}>₦{parseFloat(displayWallet?.savings_balance || '0').toLocaleString()}</Text>
               </View>
               <View style={styles.overviewStatCard}>
                 <Text style={styles.overviewStatLabel}>Escrow</Text>
-                <Text style={styles.overviewStatValue}>₦{parseFloat(wallet.escrow_balance).toLocaleString()}</Text>
+                <Text style={styles.overviewStatValue}>₦{parseFloat(displayWallet?.escrow_balance || '0').toLocaleString()}</Text>
               </View>
             </View>
 
@@ -243,7 +245,7 @@ export default function WalletScreen({ navigation }: any) {
               </View>
               <View style={styles.serviceTextContent}>
                 <Text style={styles.serviceTitle}>Micro-Savings</Text>
-                <Text style={styles.serviceSubtitle}>₦{parseFloat(savings.savings.balance).toLocaleString()} saved • {savings.annual_interest_rate}% annual interest</Text>
+                <Text style={styles.serviceSubtitle}>₦{parseFloat(displaySavings.balance).toLocaleString()} saved • {displaySavings.annual_interest_rate}% annual interest</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
             </TouchableOpacity>
@@ -277,7 +279,7 @@ export default function WalletScreen({ navigation }: any) {
                 <Text style={styles.viewAllText}>View All</Text>
               </TouchableOpacity>
             </View>
-            {transactions.slice(0, 3).map((tx) => (
+                {displayTransactions.slice(0, 3).map((tx) => (
               <TransactionItem key={tx.id} transaction={tx} formatDate={formatDate} formatTime={formatTime} />
             ))}
           </View>
@@ -286,7 +288,7 @@ export default function WalletScreen({ navigation }: any) {
         {activeTab === 'Transactions' && (
           <View>
             <Text style={styles.transactionDateHeader}>May 2026</Text>
-            {transactions.map((tx) => (
+            {displayTransactions.map((tx) => (
               <TransactionItem key={tx.id} transaction={tx} formatDate={formatDate} formatTime={formatTime} />
             ))}
           </View>
@@ -302,16 +304,16 @@ export default function WalletScreen({ navigation }: any) {
                   <Text style={styles.activeText}>Active</Text>
                 </View>
               </View>
-              <Text style={styles.savingsBalance}>₦{parseFloat(savings.savings.balance).toLocaleString()}.00</Text>
+              <Text style={styles.savingsBalance}>₦{parseFloat(displaySavings.balance).toLocaleString()}.00</Text>
               <View style={styles.savingsStatRow}>
                 <View style={styles.savingsStat}>
                   <Text style={styles.savingsStatLabel}>Interest Earned</Text>
-                  <Text style={styles.savingsStatValue}>₦{parseFloat(savings.savings.total_interest_earned).toLocaleString()}</Text>
+                  <Text style={styles.savingsStatValue}>₦{parseFloat(displaySavings.total_interest_earned).toLocaleString()}</Text>
                 </View>
                 <View style={styles.savingsStatDivider} />
                 <View style={styles.savingsStat}>
                   <Text style={styles.savingsStatLabel}>Annual Rate</Text>
-                  <Text style={styles.savingsStatValue}>{savings.annual_interest_rate}%</Text>
+                  <Text style={styles.savingsStatValue}>{displaySavings.annual_interest_rate}%</Text>
                 </View>
               </View>
             </View>
@@ -328,10 +330,10 @@ export default function WalletScreen({ navigation }: any) {
             </View>
 
             <Text style={styles.sectionTitle}>Savings History</Text>
-            {transactions.filter(t => t.description.includes('savings')).map((tx) => (
+            {displayTransactions.filter(t => t.description?.includes('savings')).map((tx) => (
               <TransactionItem key={tx.id} transaction={tx} formatDate={formatDate} formatTime={formatTime} />
             ))}
-            {transactions.filter(t => t.description.includes('savings')).length === 0 && (
+            {displayTransactions.filter(t => t.description?.includes('savings')).length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="leaf-outline" size={40} color={COLORS.textMuted} />
                 <Text style={styles.emptyText}>Your savings deposits will appear here</Text>
@@ -773,5 +775,29 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.weights.medium,
     color: COLORS.textMuted,
     marginTop: 12,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: LAYOUT.paddingHorizontal,
+  },
+  errorText: {
+    fontSize: 15,
+    fontFamily: FONTS.weights.semibold,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: BORDER_RADIUS.button,
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontFamily: FONTS.weights.semibold,
+    fontSize: 14,
   },
 });

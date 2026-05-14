@@ -3,10 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Act
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { DUMMY_EIS_SCORE } from '../../constants/dummyData';
+import { useAppStore } from '../../store/useAppStore';
 
 export default function EISScoreScreen() {
   const navigation = useNavigation<any>();
+  const score = useAppStore((state) => state.eisScore);
+  const gigsDone = useAppStore((state) => state.jobsFeed.length);
+  const daysActive = 0;
 
   let [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -21,9 +24,6 @@ export default function EISScoreScreen() {
       </View>
     );
   }
-
-  // replace with real API call to GET /api/user/eis-score using djangoClient
-  const { score, gigsDone, daysActive } = DUMMY_EIS_SCORE;
 
   const getTier = (s: number) => {
     if (s < 20) return 'Starter';

@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAppStore } from '../../store/useAppStore'
 import { authService } from '../../services/auth'
+import { getErrorMessage } from '../../utils/handleApiError'
 
 const OTPVerificationScreen = () => {
   const [otp, setOtp] = useState('')
@@ -51,7 +52,7 @@ const OTPVerificationScreen = () => {
       // Success - navigate to PIN creation
       navigation.navigate('CreatePin')
     } catch (err: any) {
-      const errorMessage = err.message || 'Failed to verify OTP'
+      const errorMessage = getErrorMessage(err, 'Failed to verify OTP')
       setError(errorMessage)
       setOtp('')
     } finally {

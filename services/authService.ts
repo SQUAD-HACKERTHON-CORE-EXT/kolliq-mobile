@@ -1,6 +1,8 @@
+import api from './api'
 import apiClient from './apiClient'
 import * as SecureStore from 'expo-secure-store'
 import { ENDPOINTS } from '../constants/endpoints'
+import { useAppStore } from '../store/useAppStore'
 
 export const register = async (data: {
   phone: string
@@ -24,36 +26,75 @@ export const register = async (data: {
   business_name?: string
   bvn?: string
 }) => {
-  const response = await apiClient.post(ENDPOINTS.REGISTER, {
+  const response = await api.post(ENDPOINTS.REGISTER, {
     ...data,
+    role: data.role === 'trader' ? 'worker' : data.role,
     channel: 'app',
   })
-  const { access, refresh, user } = response.data
-  await SecureStore.setItemAsync('access_token', access)
-  await SecureStore.setItemAsync('refresh_token', refresh)
-  await SecureStore.setItemAsync('user_id', user.id)
-  await SecureStore.setItemAsync('role', user.role)
-  return response.data
+  const payload = response.data
+  await SecureStore.setItemAsync('access_token', payload.access)
+  await SecureStore.setItemAsync('refresh_token', payload.refresh)
+  await SecureStore.setItemAsync('user_id', payload.id)
+  await SecureStore.setItemAsync('role', payload.role)
+  if (payload.squad_account_number) {
+    await SecureStore.setItemAsync('squad_account_number', payload.squad_account_number)
+  }
+  if (payload.squad_bank_name) {
+    await SecureStore.setItemAsync('squad_bank_name', payload.squad_bank_name)
+  }
+  useAppStore.getState().setAuthToken(payload.access)
+  useAppStore.getState().setLoggedIn(true)
+  useAppStore.getState().setUser({
+    id: payload.id,
+    phone: payload.phone,
+    full_name: payload.full_name,
+    role: payload.role,
+    squad_account_number: payload.squad_account_number,
+    squad_bank_name: payload.squad_bank_name,
+    walletAccountNumber: payload.squad_account_number,
+    walletBankName: payload.squad_bank_name,
+    eis_score: 0,
+  })
+  return payload
 }
 
 export const login = async (phone: string, pin: string) => {
-  const response = await apiClient.post(ENDPOINTS.LOGIN, {
+  const response = await api.post(ENDPOINTS.LOGIN, {
     phone,
     pin,
   })
-  const { access, refresh, user } = response.data
-  await SecureStore.setItemAsync('access_token', access)
-  await SecureStore.setItemAsync('refresh_token', refresh)
-  await SecureStore.setItemAsync('user_id', user.id)
-  await SecureStore.setItemAsync('role', user.role)
-  return response.data
+  const payload = response.data
+  await SecureStore.setItemAsync('access_token', payload.access)
+  await SecureStore.setItemAsync('refresh_token', payload.refresh)
+  await SecureStore.setItemAsync('user_id', payload.id)
+  await SecureStore.setItemAsync('role', payload.role)
+  if (payload.squad_account_number) {
+    await SecureStore.setItemAsync('squad_account_number', payload.squad_account_number)
+  }
+  if (payload.squad_bank_name) {
+    await SecureStore.setItemAsync('squad_bank_name', payload.squad_bank_name)
+  }
+  useAppStore.getState().setAuthToken(payload.access)
+  useAppStore.getState().setLoggedIn(true)
+  useAppStore.getState().setUser({
+    id: payload.id,
+    phone: payload.phone,
+    full_name: payload.full_name,
+    role: payload.role,
+    squad_account_number: payload.squad_account_number,
+    squad_bank_name: payload.squad_bank_name,
+    walletAccountNumber: payload.squad_account_number,
+    walletBankName: payload.squad_bank_name,
+    eis_score: 0,
+  })
+  return payload
 }
 
 export const logout = async () => {
   try {
     const refresh = await SecureStore.getItemAsync('refresh_token')
     if (refresh) {
-      await apiClient.post(ENDPOINTS.LOGOUT, { refresh })
+      await api.post(ENDPOINTS.LOGOUT, { refresh })
     }
   } catch (error) {
     console.log('Logout API error:', error)
@@ -66,31 +107,26 @@ export const logout = async () => {
 }
 
 export const getMe = async () => {
-  const response = await apiClient.get(ENDPOINTS.ME)
-  return response.data
+  return await apiClient.get(ENDPOINTS.ME)
 }
 
 export const getProfile = async () => {
-  const response = await apiClient.get(ENDPOINTS.PROFILE)
-  return response.data
+  return await apiClient.get(ENDPOINTS.PROFILE)
 }
 
 export const updateProfile = async (data: Record<string, any>) => {
-  const response = await apiClient.patch(ENDPOINTS.UPDATE_PROFILE, data)
-  return response.data
+  return await apiClient.patch(ENDPOINTS.UPDATE_PROFILE, data)
 }
 
 export const changePin = async (current_pin: string, new_pin: string) => {
-  const response = await apiClient.post(ENDPOINTS.CHANGE_PIN, {
+  return await apiClient.post(ENDPOINTS.CHANGE_PIN, {
     current_pin,
     new_pin,
   })
-  return response.data
 }
 
 export const requestPinReset = async (phone: string) => {
-  const response = await apiClient.post(ENDPOINTS.RESET_PIN_REQUEST, { phone })
-  return response.data
+  return await apiClient.post(ENDPOINTS.RESET_PIN_REQUEST, { phone })
 }
 
 export const confirmPinReset = async (
@@ -98,10 +134,9 @@ export const confirmPinReset = async (
   otp: string,
   new_pin: string
 ) => {
-  const response = await apiClient.post(ENDPOINTS.RESET_PIN_CONFIRM, {
+  return await apiClient.post(ENDPOINTS.RESET_PIN_CONFIRM, {
     phone,
     otp,
     new_pin,
   })
-  return response.data
 }

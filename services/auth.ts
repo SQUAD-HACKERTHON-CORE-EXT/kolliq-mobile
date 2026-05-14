@@ -1,6 +1,6 @@
 import api from './api';
 import * as SecureStore from 'expo-secure-store';
-import { User } from '../types';
+import { useAppStore } from '../store/useAppStore';
 
 interface RequestOtpResponse {
   message: string;
@@ -37,41 +37,45 @@ interface CompleteProfileRequest {
   business_name?: string;
 }
 
-interface CompleteProfileResponse {
-  message: string;
-  tokens: {
-    access: string;
-    refresh: string;
-  };
-  user: {
-    id: string;
-    phone: string;
-    full_name: string;
-    email: string;
-    role: 'worker' | 'trader' | 'employer';
-    virtual_account_number?: string;
-    bank_name?: string;
-  };
-}
-
-interface LoginRequest {
+type AuthResponse = {
+  access: string;
+  refresh: string;
+  id: string;
   phone: string;
-  pin: string;
+  full_name: string;
+  role: 'worker' | 'trader' | 'employer';
+  squad_account_number?: string;
+  squad_bank_name?: string;
+  squad_account_status?: string;
+  onboarding_complete?: boolean;
 }
 
-interface LoginResponse {
-  message: string;
-  tokens: {
-    access: string;
-    refresh: string;
-  };
-  user: {
-    id: string;
-    phone: string;
-    full_name: string;
-    email: string;
-    role: 'worker' | 'trader' | 'employer';
-  };
+const persistAuthSession = async (data: AuthResponse) => {
+  await SecureStore.setItemAsync('access_token', data.access);
+  await SecureStore.setItemAsync('refresh_token', data.refresh);
+  await SecureStore.setItemAsync('user_id', data.id);
+  await SecureStore.setItemAsync('role', data.role);
+
+  if (data.squad_account_number) {
+    await SecureStore.setItemAsync('squad_account_number', data.squad_account_number);
+  }
+  if (data.squad_bank_name) {
+    await SecureStore.setItemAsync('squad_bank_name', data.squad_bank_name);
+  }
+
+  useAppStore.getState().setAuthToken(data.access);
+  useAppStore.getState().setLoggedIn(true);
+  useAppStore.getState().setUser({
+    id: data.id,
+    phone: data.phone,
+    full_name: data.full_name,
+    role: data.role,
+    squad_account_number: data.squad_account_number,
+    squad_bank_name: data.squad_bank_name,
+    walletAccountNumber: data.squad_account_number,
+    walletBankName: data.squad_bank_name,
+    eis_score: 0,
+  });
 }
 
 class AuthService {
@@ -100,64 +104,36 @@ class AuthService {
 
   /**
    * Complete profile / Register user
-   * POST /auth/complete-profile
+    * POST /api/auth/register/
    */
   async register(
     data: CompleteProfileRequest
-  ): Promise<CompleteProfileResponse> {
-    const response = await api.post<CompleteProfileResponse>(
-      '/auth/complete-profile',
+  ): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>(
+      '/api/auth/register/',
       {
         ...data,
         phone: this.normalizePhoneNumber(data.phone),
+        role: data.role === 'trader' ? 'worker' : data.role,
       }
     );
 
-    // Store tokens securely
-    const { tokens } = response.data;
-    await SecureStore.setItemAsync('access_token', tokens.access);
-    await SecureStore.setItemAsync('refresh_token', tokens.refresh);
-
+    await persistAuthSession(response.data);
     return response.data;
   }
 
   /**
    * Login with phone and PIN
-   * POST /auth/login
+    * POST /api/auth/login/
    */
-  async login(phone: string, pin: string): Promise<LoginResponse> {
-    console.log('🔐 Auth service - Attempting login with:', { phone: this.normalizePhoneNumber(phone), pin: '****' })
-    try {
-      const response = await api.post<LoginResponse>('/auth/login', {
+  async login(phone: string, pin: string): Promise<AuthResponse> {
+      const response = await api.post<AuthResponse>('/api/auth/login/', {
         phone: this.normalizePhoneNumber(phone),
         pin,
       });
 
-      console.log('✅ Auth service - Login response received:', response.data)
-
-      // Store tokens securely
-      const { tokens } = response.data;
-      console.log('💾 Auth service - Storing tokens')
-      await SecureStore.setItemAsync('access_token', tokens.access);
-      await SecureStore.setItemAsync('refresh_token', tokens.refresh);
-
-      console.log('✅ Auth service - Tokens stored successfully')
+      await persistAuthSession(response.data);
       return response.data;
-    } catch (error: any) {
-      console.error('❌ Auth service - Login failed:', error.message)
-      
-      // Parse standardized error format
-      try {
-        const parsed = JSON.parse(error.message)
-        if (parsed.error?.detail) {
-          throw new Error(parsed.error.detail)
-        }
-      } catch (parseError) {
-        // If not JSON, use original message
-      }
-      
-      throw error;
-    }
   }
 
   /**
@@ -221,66 +197,66 @@ class AuthService {
 
   /**
    * Get current user profile
-   * GET /api/users/auth/profile/
+   * GET /api/auth/profile/
    */
   async getProfile(): Promise<any> {
-    const response = await api.get<any>('/api/users/auth/profile/');
-    return response.data;
+    const response = await api.get<any>('/api/auth/profile/');
+    return response.data?.data ?? response.data;
   }
 
   /**
    * Get current user info
-   * GET /api/users/auth/me/
+   * GET /api/auth/me/
    */
   async getMe(): Promise<any> {
-    const response = await api.get<any>('/api/users/auth/me/');
-    return response.data;
+    const response = await api.get<any>('/api/auth/me/');
+    return response.data?.data ?? response.data;
   }
 
   /**
    * Update user profile
-   * PATCH /api/users/auth/profile/
+   * PATCH /api/auth/profile/
    */
   async updateProfile(data: Record<string, any>): Promise<any> {
-    const response = await api.patch<any>('/api/users/auth/profile/', data);
-    return response.data;
+    const response = await api.patch<any>('/api/auth/profile/', data);
+    return response.data?.data ?? response.data;
   }
 
   /**
    * Change PIN
-   * POST /auth/change-pin
+   * POST /api/auth/change-pin/
    */
   async changePin(phone: string, old_pin: string, new_pin: string): Promise<any> {
-    const response = await api.post<any>('/auth/change-pin', {
+    const response = await api.post<any>('/api/auth/change-pin/', {
       phone: this.normalizePhoneNumber(phone),
-      old_pin,
+      current_pin: old_pin,
       new_pin,
     });
-    return response.data;
+    return response.data?.data ?? response.data;
   }
 
   /**
    * Request PIN reset
-   * POST /auth/reset-pin/request
+   * POST /api/auth/reset-pin/request/
    */
   async requestPinReset(phone: string): Promise<any> {
-    const response = await api.post<any>('/auth/reset-pin/request', {
+    const response = await api.post<any>('/api/auth/reset-pin/request/', {
       phone: this.normalizePhoneNumber(phone),
     });
-    return response.data;
+    return response.data?.data ?? response.data;
   }
 
   /**
    * Confirm PIN reset
-   * POST /auth/reset-pin/confirm
+   * POST /api/auth/reset-pin/confirm/
    */
   async confirmPinReset(phone: string, otp: string, new_pin: string): Promise<any> {
-    const response = await api.post<any>('/auth/reset-pin/confirm', {
+    const response = await api.post<any>('/api/auth/reset-pin/confirm/', {
       phone: this.normalizePhoneNumber(phone),
       otp,
       new_pin,
     });
-    return response.data;
+    return response.data?.data ?? response.data;
   }
 }
 

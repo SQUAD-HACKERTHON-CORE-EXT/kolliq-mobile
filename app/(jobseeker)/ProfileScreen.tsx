@@ -3,7 +3,6 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
-import { DUMMY_USER, DUMMY_TOP_WORKERS } from '../../constants/dummyData';
 import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout';
 import { Card } from '../../components/ui/Card';
 import { useAppStore } from '../../store/useAppStore';
@@ -35,7 +34,7 @@ export default function JobseekerProfile({ navigation }: any) {
     }
   };
 
-  const user = storeUser || DUMMY_USER;
+  const user = storeUser;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -45,7 +44,7 @@ export default function JobseekerProfile({ navigation }: any) {
           <Feather name="arrow-left" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('ChangePin')}>
             <Ionicons name="settings-outline" size={24} color={COLORS.text} />
           </TouchableOpacity>
         </View>
@@ -56,22 +55,22 @@ export default function JobseekerProfile({ navigation }: any) {
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitial}>{user.full_name.charAt(0)}</Text>
+              <Text style={styles.avatarInitial}>{user?.full_name?.charAt(0) || 'U'}</Text>
             </View>
             <View style={styles.verifiedBadge}>
               <Ionicons name="checkmark" size={12} color={COLORS.white} />
             </View>
           </View>
-          <Text style={styles.name}>{user.full_name}</Text>
+          <Text style={styles.name}>{user?.full_name || 'Profile'}</Text>
           <Text style={styles.location}>
-            <Ionicons name="location" size={14} color={COLORS.primary} /> {user.location_city}
+            <Ionicons name="location" size={14} color={COLORS.primary} /> {user?.location_city || '—'}
           </Text>
         </View>
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>{user.eis_score}</Text>
+            <Text style={styles.statValue}>{user?.eis_score || 0}</Text>
             <Text style={styles.statLabel}>EIS Score</Text>
           </View>
           <View style={styles.statDivider} />
@@ -90,7 +89,7 @@ export default function JobseekerProfile({ navigation }: any) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>My Skills</Text>
           <View style={styles.skillsContainer}>
-            {['Delivery', 'Logistics', 'Cleaning'].map((skill, i) => (
+            {(user?.skills || ['No skills yet']).map((skill, i) => (
               <View key={i} style={styles.skillBadge}>
                 <Text style={styles.skillText}>{skill}</Text>
               </View>
@@ -132,11 +131,11 @@ export default function JobseekerProfile({ navigation }: any) {
             <Text style={styles.menuText}>Gig History</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ChangePin')}>
             <View style={styles.menuIconBox}>
-              <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.textSecondary} />
+              <Ionicons name="key-outline" size={20} color={COLORS.textSecondary} />
             </View>
-            <Text style={styles.menuText}>Verification & Documents</Text>
+            <Text style={styles.menuText}>Change PIN</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem}>

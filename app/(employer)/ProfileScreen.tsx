@@ -23,7 +23,9 @@ export default function EmployerProfile({ navigation }: any) {
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <View style={styles.onlineDot} />
-          <View style={styles.avatarPlaceholderSmall} />
+          <TouchableOpacity onPress={() => navigation.navigate('ChangePin')}>
+            <View style={styles.avatarPlaceholderSmall} />
+          </TouchableOpacity>
         </View>
       </View>
 

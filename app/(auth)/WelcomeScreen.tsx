@@ -89,7 +89,7 @@ const WelcomeScreen = () => {
 
         <TouchableOpacity 
           style={styles.ghostButton}
-          onPress={() => {}} 
+          onPress={() => navigation.navigate('Login')} 
         >
           <Text style={styles.ghostButtonText}>Log In</Text>
         </TouchableOpacity>

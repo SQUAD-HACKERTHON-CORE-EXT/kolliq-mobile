@@ -2,23 +2,18 @@ import React from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRoute } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 export default function GigDetailScreen({ navigation }: any) {
-  const gig = {
-    title: 'Site Labourer',
-    employer: 'BuildTech Const.',
-    rating: 4.9,
-    hires: 24,
-    pay: '5,000',
-    duration: '8 hours',
-    distance: '1.2 km',
-    match: 70,
-    description: 'We need reliable labourers for a site handover project. Duties include moving construction materials, clearing debris, and assisting the main artisans. You must come with safety boots.',
-    location: 'Plot 14, Victoria Island Extension'
-  };
+  const route = useRoute<any>();
+  const gig = route.params?.job || route.params || {};
+  const payValue = gig.pay_per_worker ?? gig.pay ?? 0;
+  const distanceValue = gig.distance_km ?? gig.distance ?? '—';
+  const durationValue = gig.duration_hours ?? gig.duration ?? '—';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -39,17 +34,17 @@ export default function GigDetailScreen({ navigation }: any) {
             <Ionicons name="hammer" size={32} color={COLORS.text} />
           </View>
           <View style={styles.matchBadge}>
-            <Text style={styles.matchText}>{gig.match}% Match</Text>
+            <Text style={styles.matchText}>{gig.match_score ?? gig.match ?? 0}% Match</Text>
           </View>
         </View>
 
         <View style={styles.titleSection}>
           <Text style={styles.title}>{gig.title}</Text>
           <View style={styles.employerRow}>
-            <Text style={styles.employer}>{gig.employer}</Text>
+            <Text style={styles.employer}>{gig.employer_name || gig.employer || 'Employer'}</Text>
             <View style={styles.dot} />
             <Ionicons name="star" size={14} color={COLORS.warning} />
-            <Text style={styles.ratingText}>{gig.rating} ({gig.hires} hires)</Text>
+            <Text style={styles.ratingText}>{gig.employer_rating || gig.rating || 0}</Text>
           </View>
         </View>
 
@@ -58,17 +53,17 @@ export default function GigDetailScreen({ navigation }: any) {
           <Card variant="outline" style={styles.statCard}>
             <Ionicons name="time-outline" size={20} color={COLORS.textSecondary} />
             <Text style={styles.statLabel}>Duration</Text>
-            <Text style={styles.statValue}>{gig.duration}</Text>
+            <Text style={styles.statValue}>{durationValue}</Text>
           </Card>
           <Card variant="outline" style={styles.statCard}>
             <Ionicons name="location-outline" size={20} color={COLORS.textSecondary} />
             <Text style={styles.statLabel}>Distance</Text>
-            <Text style={styles.statValue}>{gig.distance}</Text>
+            <Text style={styles.statValue}>{distanceValue}</Text>
           </Card>
           <Card variant="outline" style={styles.statCard}>
             <Ionicons name="cash-outline" size={20} color={COLORS.primary} />
             <Text style={styles.statLabel}>Pay</Text>
-            <Text style={[styles.statValue, { color: COLORS.primary }]}>₦{gig.pay}</Text>
+            <Text style={[styles.statValue, { color: COLORS.primary }]}>{formatCurrency(payValue)}</Text>
           </Card>
         </View>
 
@@ -80,7 +75,7 @@ export default function GigDetailScreen({ navigation }: any) {
           <View style={styles.protectedTextContainer}>
             <Text style={styles.protectedTitle}>Payment Protected</Text>
             <Text style={styles.protectedSubtitle}>
-              The employer has deposited ₦{gig.pay} into the Squad Escrow. You will be paid automatically when the job is completed.
+              The employer has deposited {formatCurrency(payValue)} into the Squad Escrow. You will be paid automatically when the job is completed.
             </Text>
           </View>
         </View>
@@ -88,7 +83,7 @@ export default function GigDetailScreen({ navigation }: any) {
         {/* Description */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Job Description</Text>
-          <Text style={styles.descriptionText}>{gig.description}</Text>
+          <Text style={styles.descriptionText}>{gig.description || 'No description available.'}</Text>
         </View>
 
         {/* Location Map Placeholder */}
@@ -100,7 +95,7 @@ export default function GigDetailScreen({ navigation }: any) {
             </View>
             <View style={styles.mapAddress}>
               <Ionicons name="location" size={18} color={COLORS.primary} />
-              <Text style={styles.mapAddressText}>{gig.location}</Text>
+              <Text style={styles.mapAddressText}>{gig.location_area || gig.location || 'Location unavailable'}</Text>
             </View>
           </View>
         </View>
@@ -117,7 +112,7 @@ export default function GigDetailScreen({ navigation }: any) {
         />
         <Button 
           title="Accept Gig" 
-          onPress={() => {}} 
+          onPress={() => navigation.navigate('AcceptJob', { job: gig })} 
           variant="primary"
           size="lg"
           style={styles.primaryBtn}

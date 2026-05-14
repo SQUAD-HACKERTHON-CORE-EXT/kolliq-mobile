@@ -1,9 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
-import { DUMMY_USER, DUMMY_WALLET, DUMMY_JOBS } from '../../constants/dummyData';
 import { ScoreCard } from '../../components/ui/ScoreCard';
 import { WalletCard } from '../../components/ui/WalletCard';
 import { GigCard } from '../../components/ui/GigCard';
@@ -12,6 +11,9 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { formatCurrency, formatNumber } from '../../utils/formatCurrency';
 import { useAppStore } from '../../store/useAppStore';
 import { authService } from '../../services/auth'
+import { getJobsFeed } from '../../services/jobsService';
+import { getWallet } from '../../services/walletService';
+import { getErrorMessage } from '../../utils/handleApiError';
 
 const NAV_TABS = [
   { id: 'Home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
@@ -32,10 +34,12 @@ const SKILL_ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
 export default function HomeScreen({ navigation }: any) {
   const wallet = useAppStore((state) => state.wallet);
   const user = useAppStore((state) => state.user);
-  const jobs = DUMMY_JOBS;
+  const jobs = useAppStore((state) => state.jobsFeed);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const setWallet = useAppStore((state) => state.setWallet);
   const setUser = useAppStore((state) => state.setUser);
+  const setJobsFeed = useAppStore((state) => state.setJobsFeed);
 
   useEffect(() => {
     loadData();
@@ -43,19 +47,28 @@ export default function HomeScreen({ navigation }: any) {
 
   const loadData = async () => {
     try {
+      setLoadError(null);
       const profileData = await authService.getProfile();
       
       if (profileData) {
         setUser(profileData);
       }
+
+      const [walletData, jobsData] = await Promise.all([
+        getWallet(),
+        getJobsFeed(),
+      ])
+
+      if (walletData) setWallet(walletData)
+      setJobsFeed(Array.isArray(jobsData) ? jobsData : [])
     } catch (error) {
-      console.log('Home load error:', error);
+      setLoadError(getErrorMessage(error, 'Failed to load home data'));
     }
   };
 
-  const displayWallet = wallet || DUMMY_WALLET;
-  const displayUser = user || DUMMY_USER;
-  const firstName = displayUser.full_name.split(' ')[0];
+  const displayWallet = wallet;
+  const displayUser = user;
+  const firstName = displayUser?.full_name?.split(' ')[0] || 'there';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -73,8 +86,8 @@ export default function HomeScreen({ navigation }: any) {
         {/* Wallet Balance Card */}
         <View style={styles.section}>
           <WalletCard
-            balance={formatNumber(parseFloat(displayWallet.balance))}
-            score={displayUser.eis_score || 0}
+            balance={formatNumber(parseFloat(displayWallet?.balance || '0'))}
+            score={displayUser?.eis_score || 0}
             onPrimaryAction={() => navigation.navigate('WalletScreen')}
             onSecondaryAction={() => navigation.navigate('WalletScreen')}
           />
@@ -108,7 +121,7 @@ export default function HomeScreen({ navigation }: any) {
         {/* EIS Score */}
         <View style={styles.section}>
           <ScoreCard
-            score={displayUser.eis_score || 0}
+            score={displayUser?.eis_score || 0}
             tier="Tier 2: Savings Active"
             gigsCompleted={12}
             ptsToNext={33}
@@ -177,11 +190,11 @@ export default function HomeScreen({ navigation }: any) {
             title="Jobs Near You"
             onViewAll={() => navigation.navigate('JobsFeed')}
           />
-          {jobs.map((job) => (
+            {jobs.map((job) => (
             <GigCard
-              key={job.job_id}
+              key={job.job_id || job.id}
               title={job.title}
-              employer={job.employer_name}
+              employer={job.employer_name || job.employer || 'Employer'}
               rating={job.employer_rating}
               pay={formatCurrency(job.pay_per_worker)}
               match={job.match_score}

@@ -462,17 +462,21 @@ PostgreSQL Database
 ### **API Structure**
 
 ```
-Base URL: https://node-middleware.up.railway.app
+Base URL: https://django-core.up.railway.app
 
 Auth Endpoints (Node.js Middleware):
 ├── POST /auth/request-otp
 ├── POST /auth/verify-otp
-├── POST /auth/complete-profile (register)
-├── POST /auth/login
-├── POST /auth/change-pin
-├── POST /auth/reset-pin/request
-├── POST /auth/reset-pin/confirm
-└── GET  /api/users/auth/profile/
+├── POST /api/auth/register/ (register)
+├── POST /api/auth/login/
+├── POST /api/auth/logout/
+├── GET  /api/auth/me/
+├── GET  /api/auth/profile/
+├── PATCH /api/auth/profile/
+├── POST /api/auth/change-pin/
+├── POST /api/auth/reset-pin/request/
+├── POST /api/auth/reset-pin/confirm/
+└── GET  /api/health/
 
 Job Endpoints (Django via Middleware):
 ├── GET  /api/jobs/feed/
@@ -617,7 +621,7 @@ Then choose:
 Create `.env` file in root directory:
 
 ```env
-EXPO_PUBLIC_API_BASE_URL=https://node-middleware.up.railway.app
+EXPO_PUBLIC_API_BASE_URL=https://django-core.up.railway.app
 ```
 
 **Note**: This file is added to `.gitignore` for security.
@@ -928,7 +932,7 @@ npm start
 
 ```bash
 # Run in specific environment
-EXPO_PUBLIC_API_BASE_URL=http://localhost:8000 npm start
+EXPO_PUBLIC_API_BASE_URL=https://django-core.up.railway.app npm start
 
 # Check for TypeScript errors
 npx tsc --noEmit
@@ -959,7 +963,7 @@ RoleSpecificScreen (OnboardingWorker/Trader/Employer)
 OnboardingLocationScreen
     ↓ (City and area selection)
 OnboardingReviewScreen
-    ↓ (authService.register() - POST /auth/complete-profile)
+    ↓ (authService.register() - POST /api/auth/register/)
 Success Screen
     ↓ (Tokens stored, role stored)
 Dashboard (based on role)
@@ -969,7 +973,7 @@ Dashboard (based on role)
 
 ```
 LoginScreen (Phone + 4-digit PIN)
-    ↓ (authService.login() - POST /auth/login)
+    ↓ (authService.login() - POST /api/auth/login/)
 Dashboard (auto-route based on role)
     ↓
 Worker: HomeScreen (job feed)

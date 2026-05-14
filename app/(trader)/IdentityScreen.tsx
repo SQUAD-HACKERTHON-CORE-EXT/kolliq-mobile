@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
@@ -9,6 +9,8 @@ import { Card } from '../../components/ui/Card';
 import { WalletCard } from '../../components/ui/WalletCard';
 import { ScoreCard } from '../../components/ui/ScoreCard';
 import { formatCurrency, formatNumber } from '../../utils/formatCurrency';
+import { getCategories, getListings } from '../../services/marketplaceService';
+import { getErrorMessage } from '../../utils/handleApiError';
 
 const NAV_TABS = [
   { id: 'TraderHome', label: 'Home', icon: 'grid-outline', activeIcon: 'grid' },
@@ -18,12 +20,38 @@ const NAV_TABS = [
 ] as const;
 
 export default function IdentityScreen({ navigation }: any) {
+  const [categories, setCategories] = useState<any[]>([]);
+  const [listings, setListings] = useState<any[]>([]);
+  const [loadingMarket, setLoadingMarket] = useState(true);
+  const [marketError, setMarketError] = useState('');
+
   const weeklyData = [
     { label: 'Wk 1', height: 40, color: COLORS.surfaceAlt },
     { label: 'Wk 2', height: 60, color: COLORS.surfaceAlt },
     { label: 'Wk 3', height: 85, color: COLORS.primary },
     { label: 'Wk 4', height: 100, color: COLORS.primary },
   ];
+
+  useEffect(() => {
+    const loadMarket = async () => {
+      try {
+        setLoadingMarket(true);
+        setMarketError('');
+        const [categoryData, listingData] = await Promise.all([
+          getCategories(),
+          getListings({ page: 1 }),
+        ]);
+        setCategories(categoryData);
+        setListings(listingData);
+      } catch (error: any) {
+        setMarketError(getErrorMessage(error, 'Failed to load marketplace data'));
+      } finally {
+        setLoadingMarket(false);
+      }
+    };
+
+    loadMarket();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -85,6 +113,42 @@ export default function IdentityScreen({ navigation }: any) {
             <Text style={styles.loanAmountText}>0</Text>
             <Text style={styles.loanAmountText}>₦50,000</Text>
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader title="Marketplace" onViewAll={() => {}} />
+          {loadingMarket ? (
+            <View style={styles.marketLoadingRow}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.marketLoadingText}>Loading live listings…</Text>
+            </View>
+          ) : marketError ? (
+            <View style={styles.marketErrorCard}>
+              <Text style={styles.marketErrorText}>{marketError}</Text>
+            </View>
+          ) : null}
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+            {categories.map((category) => (
+              <View key={category.id} style={styles.categoryChip}>
+                <Text style={styles.categoryChipText}>{category.name}</Text>
+              </View>
+            ))}
+          </ScrollView>
+
+          {listings.slice(0, 3).map((listing) => (
+            <Card key={listing.id} variant="outline" style={styles.listingCard}>
+              <Text style={styles.listingTitle}>{listing.title}</Text>
+              <Text style={styles.listingMeta}>{listing.location_city || 'Market listing'} • ₦{formatNumber(listing.price)}</Text>
+              <Text style={styles.listingDesc} numberOfLines={2}>{listing.description}</Text>
+            </Card>
+          ))}
+
+          {!loadingMarket && listings.length === 0 && !marketError ? (
+            <View style={styles.emptyMarketState}>
+              <Text style={styles.emptyMarketText}>No live listings yet.</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -253,6 +317,82 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textMuted,
     fontFamily: FONTS.weights.medium,
+  },
+  marketLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: SPACING.md,
+  },
+  marketLoadingText: {
+    fontSize: 13,
+    fontFamily: FONTS.weights.medium,
+    color: COLORS.textMuted,
+  },
+  marketErrorCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.18)',
+  },
+  marketErrorText: {
+    fontSize: 13,
+    fontFamily: FONTS.weights.medium,
+    color: '#B91C1C',
+  },
+  categoryRow: {
+    gap: 8,
+    paddingBottom: 12,
+  },
+  categoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  categoryChipText: {
+    fontSize: 12,
+    fontFamily: FONTS.weights.medium,
+    color: COLORS.text,
+  },
+  listingCard: {
+    marginBottom: 10,
+    padding: SPACING.lg,
+  },
+  listingTitle: {
+    fontSize: 15,
+    fontFamily: FONTS.weights.bold,
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  listingMeta: {
+    fontSize: 12,
+    fontFamily: FONTS.weights.medium,
+    color: COLORS.textMuted,
+    marginBottom: 6,
+  },
+  listingDesc: {
+    fontSize: 13,
+    fontFamily: FONTS.weights.regular,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  emptyMarketState: {
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.lg,
+    alignItems: 'center',
+  },
+  emptyMarketText: {
+    fontSize: 13,
+    fontFamily: FONTS.weights.medium,
+    color: COLORS.textMuted,
   },
   chartCard: {
     padding: SPACING.xl,

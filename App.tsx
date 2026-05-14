@@ -17,6 +17,8 @@ import PhoneEntryScreen from './app/(auth)/PhoneEntryScreen';
 import CreatePinScreen from './app/(auth)/CreatePinScreen';
 import LoginScreen from './app/(auth)/LoginScreen';
 import OTPVerificationScreen from './app/(auth)/OTPVerificationScreen';
+import ResetPinRequestScreen from './app/(auth)/ResetPinRequestScreen';
+import ResetPinConfirmScreen from './app/(auth)/ResetPinConfirmScreen';
 import PersonalDetailsScreen from './app/(auth)/PersonalDetailsScreen';
 import UserTypeSelectionScreen from './app/(auth)/UserTypeSelectionScreen';
 import OnboardingWorkerScreen from './app/(auth)/OnboardingWorkerScreen';
@@ -46,8 +48,10 @@ import AcceptJobScreen from './app/(jobseeker)/AcceptJobScreen';
 import PostJobScreen from './app/(employer)/PostJobScreen';
 import EscrowInstructionsScreen from './app/(employer)/EscrowInstructionsScreen';
 import EISScoreScreen from './app/(shared)/EISScoreScreen';
+import ChangePinScreen from './app/(shared)/ChangePinScreen';
 import { COLORS } from './constants';
 import { useAppStore } from './store/useAppStore';
+import { authService } from './services/auth';
 
 const Stack = createNativeStackNavigator();
 
@@ -68,16 +72,18 @@ export default function App() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Load user from storage first
         await loadUserFromStorage();
-        
-        // Get the stored role directly
-        const storedRole = await SecureStore.getItemAsync('role');
         const storedToken = await SecureStore.getItemAsync('access_token');
-        
-        // Determine initial route based on stored data
-        if (storedToken && storedRole) {
-          // User is logged in, route based on role
+        const storedRole = await SecureStore.getItemAsync('role');
+
+        if (!storedToken) {
+          setInitialRoute('Welcome');
+          return;
+        }
+
+        try {
+          await authService.getMe();
+
           if (storedRole === 'worker') {
             setInitialRoute('Home');
           } else if (storedRole === 'employer') {
@@ -85,11 +91,13 @@ export default function App() {
           } else if (storedRole === 'trader') {
             setInitialRoute('TraderHome');
           } else {
-            // Unknown role, send to welcome
             setInitialRoute('Welcome');
           }
-        } else {
-          // No token or role, user is not logged in
+        } catch (authError) {
+          await SecureStore.deleteItemAsync('access_token');
+          await SecureStore.deleteItemAsync('refresh_token');
+          await SecureStore.deleteItemAsync('role');
+          await SecureStore.deleteItemAsync('user_id');
           setInitialRoute('Welcome');
         }
       } catch (error) {
@@ -133,6 +141,8 @@ export default function App() {
           
           {/* Auth Flow - Login */}
           <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="ResetPinRequest" component={ResetPinRequestScreen} />
+          <Stack.Screen name="ResetPinConfirm" component={ResetPinConfirmScreen} />
           <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
           <Stack.Screen name="WalletLoading" component={WalletLoadingScreen} />
           
@@ -160,6 +170,7 @@ export default function App() {
           <Stack.Screen name="InsuranceScreen" component={InsuranceScreen} />
           <Stack.Screen name="SavingsScreen" component={SavingsScreen} />
           <Stack.Screen name="EISScoreScreen" component={EISScoreScreen} />
+          <Stack.Screen name="ChangePin" component={ChangePinScreen} />
         </Stack.Navigator>
         <StatusBar style="dark" />
       </NavigationContainer>
