@@ -32,9 +32,10 @@ export default function DashboardScreen({ navigation }: any) {
       setLoadingWallet(true)
       try {
         const myJobs = await getMyJobs()
-        const data: any = myJobs as any
-        setJobs(Array.isArray(data) ? data : (data?.jobs ?? data?.results ?? []))
+        console.log('📑 MY JOBS DATA ON DASHBOARD:', JSON.stringify(myJobs, null, 2));
+        setJobs(Array.isArray(myJobs) ? myJobs : []);
       } catch (e) {
+        console.error('Error loading my jobs:', e);
         setJobs([])
       } finally {
         setLoadingJobs(false)
@@ -79,7 +80,8 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.section}>
           <WalletCard 
             title="Escrow Wallet Balance"
-            balance={loadingWallet ? '—' : (wallet?.balance ? `₦${formatNumber(wallet.balance)}` : '₦0')}
+            balance={loadingWallet ? '—' : formatNumber(wallet?.balance || 0)}
+            score={user?.eis_score || 0}
             primaryActionTitle="+ Fund Escrow"
             secondaryActionTitle="History"
             onPrimaryAction={() => navigation.navigate('WalletScreen')}

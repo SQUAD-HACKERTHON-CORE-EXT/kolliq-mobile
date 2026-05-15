@@ -18,7 +18,16 @@ export default function GigDetailScreen({ navigation }: any) {
   const durationValue = gig.duration_hours ?? gig.duration ?? '—';
   const [accepting, setAccepting] = useState(false);
 
+  const gigStatus: string = gig?.status ?? '';
+  const isAlreadyAccepted =
+    ['accepted', 'ongoing', 'active', 'in_progress'].includes(gigStatus) ||
+    Boolean(gig?.acceptedBy);
+
+  const canAcceptGig = !isAlreadyAccepted && (gigStatus === 'open' || gigStatus === '' || gigStatus === 'pending');
+
   const handleAcceptGig = async () => {
+    if (!canAcceptGig) return;
+
     const jobId = gig.id || gig.job_id;
     if (!jobId) {
       Alert.alert('Error', 'Job ID not found. Please try again.');
@@ -146,8 +155,8 @@ export default function GigDetailScreen({ navigation }: any) {
           size="lg"
           style={styles.secondaryBtn}
         />
-        <Button 
-          title={accepting ? 'Accepting…' : 'Accept Gig'}
+        <Button
+          title={isAlreadyAccepted ? 'Accepted' : (accepting ? 'Accepting…' : 'Accept Gig')}
           onPress={handleAcceptGig}
           variant="primary"
           size="lg"

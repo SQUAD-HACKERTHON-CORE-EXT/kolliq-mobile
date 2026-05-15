@@ -14,7 +14,10 @@ export const formatCurrency = (amount: number): string => {
  * Format currency without symbol (for display purposes)
  */
 export const formatNumber = (amount: number): string => {
-  return amount.toLocaleString('en-NG');
+  return new Intl.NumberFormat('en-NG', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 };
 
 /**

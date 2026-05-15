@@ -6,6 +6,7 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { useAppStore } from '../../store/useAppStore';
 import { activateInsurance, getInsurance } from '../../services/financialService';
 import { getErrorMessage } from '../../utils/handleApiError';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PRODUCTS = [
   { id: 'income', title: 'Income Protection', desc: 'Get paid when you cannot work', icon: 'wallet-outline' as const, color: '#3B82F6', bg: 'rgba(59,130,246,0.1)', premium: '₦200/day', coverage: '₦50,000' },
@@ -14,6 +15,7 @@ const PRODUCTS = [
 ];
 
 export default function InsuranceScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -62,7 +64,7 @@ export default function InsuranceScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container}>
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.back}><Feather name="arrow-left" size={22} color={COLORS.text} /></TouchableOpacity>
         <Text style={s.title}>Micro-Insurance</Text>
         <View style={{ width: 40 }} />

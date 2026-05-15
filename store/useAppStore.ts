@@ -233,15 +233,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLoading: (value) => set({ isLoading: value }),
   setAuthToken: (token) => set({ authToken: token }),
 
-  setUser: (user) =>
+  setUser: (user) => {
+    const rawScore = (user as any).eis_score ?? (user as any).score ?? (user as any).economic_identity_score ?? 0;
+    const score = typeof rawScore === 'string' ? parseFloat(rawScore) : rawScore;
+    
     set({
       user,
       isLoggedIn: true,
-      eisScore: user.eis_score || 0,
-      savingsUnlocked: (user.eis_score || 0) >= 20,
-      loansUnlocked: (user.eis_score || 0) >= 50,
-      insuranceUnlocked: (user.eis_score || 0) >= 70,
-    }),
+      eisScore: score,
+      savingsUnlocked: score >= 20,
+      loansUnlocked: score >= 50,
+      insuranceUnlocked: score >= 70,
+    });
+  },
 
   setEisScore: (score) =>
     set({

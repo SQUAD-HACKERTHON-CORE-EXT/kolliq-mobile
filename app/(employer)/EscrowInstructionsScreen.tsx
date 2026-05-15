@@ -30,19 +30,23 @@ export default function EscrowInstructionsScreen() {
           const jobDetail = await getJobDetail(params.job_id);
           const escrow = jobDetail?.escrow_instructions;
 
-          if (!escrow?.account_number || !escrow?.bank_name) {
-            // escrow not available from backend
+          // Use server data if available, otherwise fallback to params passed from PostJob screen
+          const accountNumber = escrow?.account_number || params.escrow_account;
+          const bank = escrow?.bank_name || params.bank_name;
+          const reference = escrow?.reference || params.reference;
+
+          if (!accountNumber || accountNumber === '—') {
             setInstructions(null);
             return;
           }
 
           setInstructions({
-            accountNumber: escrow.account_number,
-            bank: escrow.bank_name,
+            accountNumber,
+            bank,
             amount: params.amount
               ? `₦${parseInt(params.amount as string).toLocaleString()}`
-              : (escrow.amount ? `₦${parseInt(String(escrow.amount)).toLocaleString()}` : '—'),
-            reference: escrow.reference ?? params.reference ?? '',
+              : (escrow?.amount ? `₦${parseInt(String(escrow.amount)).toLocaleString()}` : '—'),
+            reference: reference ?? '',
           });
         }
       } catch (e) {

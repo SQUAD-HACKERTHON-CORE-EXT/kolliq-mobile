@@ -50,6 +50,7 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response) => {
+    console.log(`✅ API RESPONSE [${response.config.url}]:`, JSON.stringify(response.data?.data ?? response.data, null, 2));
     if (response.data && response.data.success === false) {
       return Promise.reject(new Error(extractApiErrorMessage(response.data)))
     }
@@ -62,6 +63,7 @@ apiClient.interceptors.response.use(
     console.log('apiClient response error:', {
       url,
       status,
+      details: JSON.stringify(error?.response?.data, null, 2), // ADDED: Expand the details fully
     })
 
     // During this fix, do NOT clear tokens here; logout flow handles it explicitly.

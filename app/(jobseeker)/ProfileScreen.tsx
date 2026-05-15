@@ -8,6 +8,8 @@ import { Card } from '../../components/ui/Card';
 import { useAppStore } from '../../store/useAppStore';
 import { getProfile, logout } from '../../services/authService';
 import { getMyJobs, getUserRatings } from '../../services/jobsService';
+import { checkLoanEligibility } from '../../services/financialService';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const NAV_TABS = [
   { id: 'Home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
@@ -17,7 +19,9 @@ const NAV_TABS = [
 ] as const;
 
 export default function JobseekerProfile({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const storeUser = useAppStore((state) => state.user);
+  const eisScore = useAppStore((state) => state.eisScore);
   const setUser = useAppStore((state) => state.setUser);
   const [gigsCount, setGigsCount] = useState<number | null>(null);
   const [avgRating, setAvgRating] = useState<number | null>(null);
@@ -46,10 +50,15 @@ export default function JobseekerProfile({ navigation }: any) {
       if (profileData) setUser(profileData);
 
       const userId = profileData?.id || storeUser?.id;
-      const [myJobsData, ratingsData] = await Promise.all([
+      const [myJobsData, ratingsData, eligibilityData] = await Promise.all([
         getMyJobs().catch(() => null),
         userId ? getUserRatings(userId).catch(() => null) : Promise.resolve(null),
+        checkLoanEligibility().catch(() => null),
       ]);
+
+      if (eligibilityData && eligibilityData.score !== undefined) {
+        useAppStore.getState().setEisScore(eligibilityData.score);
+      }
 
       // Compute gigs count
       if (myJobsData != null) {
@@ -82,7 +91,7 @@ export default function JobseekerProfile({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={COLORS.text} />
         </TouchableOpacity>
@@ -116,7 +125,7 @@ export default function JobseekerProfile({ navigation }: any) {
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>{user?.eis_score || 0}</Text>
+            <Text style={styles.statValue}>{eisScore}</Text>
             <Text style={styles.statLabel}>EIS Score</Text>
           </View>
           <View style={styles.statDivider} />
@@ -190,7 +199,7 @@ export default function JobseekerProfile({ navigation }: any) {
 
         {/* Action Menu */}
         <View style={styles.menuSection}>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('MyJobs')}>
             <View style={styles.menuIconBox}>
               <Ionicons name="document-text-outline" size={20} color={COLORS.textSecondary} />
             </View>

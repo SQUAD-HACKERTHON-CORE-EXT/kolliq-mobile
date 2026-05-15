@@ -94,7 +94,7 @@ const persistAuthSession = async (data: AuthResponse) => {
     squad_bank_name: data.squad_bank_name,
     walletAccountNumber: data.squad_account_number,
     walletBankName: data.squad_bank_name,
-    eis_score: 0,
+    eis_score: (data as any).eis_score ?? (data as any).score ?? 0,
   });
 }
 
@@ -266,6 +266,7 @@ class AuthService {
    */
   async getProfile(): Promise<any> {
     const response = await api.get<any>(ENDPOINTS.PROFILE);
+    console.log('👤 USER PROFILE DATA:', JSON.stringify(response.data?.data ?? response.data, null, 2));
     return response.data?.data ?? response.data;
   }
 
@@ -275,6 +276,7 @@ class AuthService {
    */
   async getMe(): Promise<any> {
     const response = await api.get<any>(ENDPOINTS.ME);
+    console.log('👤 USER PROFILE DATA:', JSON.stringify(response.data?.data ?? response.data, null, 2));
     return response.data?.data ?? response.data;
   }
 

@@ -4,10 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, LAYOUT, BORDER_RADIUS } from '../../constants';
 import { useAppStore } from '../../store/useAppStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getSavings, depositSavings, withdrawSavings } from '../../services/financialService';
 import { getErrorMessage } from '../../utils/handleApiError';
 
 export default function SavingsScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const savings = useAppStore((state) => state.savings);
   const setSavings = useAppStore((state) => state.setSavings);
   const [modalType, setModalType] = useState<'deposit' | 'withdraw' | null>(null);

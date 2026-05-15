@@ -2,8 +2,9 @@ import apiClient from './apiClient'
 import { ENDPOINTS } from '../constants/endpoints'
 
 export const getWallet = async () => {
-  const response = await apiClient.get(ENDPOINTS.WALLET)
-  return response as any
+  const response: any = await apiClient.get(ENDPOINTS.WALLET)
+  console.log('💳 WALLET DATA:', JSON.stringify(response?.data || response, null, 2));
+  return response?.data || response;
 }
 
 export const waitForWallet = async (): Promise<any> => {

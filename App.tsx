@@ -49,10 +49,13 @@ import SavingsScreen from './app/(shared)/SavingsScreen';
 import SplashScreen from './app/(shared)/SplashScreen';
 import JobDetailScreen from './app/(jobseeker)/JobDetailScreen';
 import AcceptJobScreen from './app/(jobseeker)/AcceptJobScreen';
+import MyJobsScreen from './app/(jobseeker)/MyJobsScreen';
 import PostJobScreen from './app/(employer)/PostJobScreen';
 import EscrowInstructionsScreen from './app/(employer)/EscrowInstructionsScreen';
+import JobApplicantsScreen from './app/(employer)/JobApplicantsScreen';
 import EISScoreScreen from './app/(shared)/EISScoreScreen';
 import ChangePinScreen from './app/(shared)/ChangePinScreen';
+import TransferScreen from './app/(shared)/TransferScreen';
 import { COLORS } from './constants';
 import { useAppStore } from './store/useAppStore';
 import { authService } from './services/auth';
@@ -158,6 +161,7 @@ export default function App() {
           <Stack.Screen name="JobseekerProfile" component={JobseekerProfile} />
           <Stack.Screen name="JobDetail" component={JobDetailScreen} />
           <Stack.Screen name="AcceptJob" component={AcceptJobScreen} />
+          <Stack.Screen name="MyJobs" component={MyJobsScreen} />
           
           {/* Employer Routes */}
           <Stack.Screen name="EmployerDashboard" component={EmployerDashboard} />
@@ -165,6 +169,7 @@ export default function App() {
           <Stack.Screen name="Workers" component={WorkersScreen} />
           <Stack.Screen name="PostJob" component={PostJobScreen} />
           <Stack.Screen name="EscrowInstructions" component={EscrowInstructionsScreen} />
+          <Stack.Screen name="JobApplicants" component={JobApplicantsScreen} />
           
           {/* Trader Routes */}
           <Stack.Screen name="TraderHome" component={TraderIdentity} />
@@ -180,6 +185,7 @@ export default function App() {
           <Stack.Screen name="SavingsScreen" component={SavingsScreen} />
           <Stack.Screen name="EISScoreScreen" component={EISScoreScreen} />
           <Stack.Screen name="ChangePin" component={ChangePinScreen} />
+          <Stack.Screen name="Transfer" component={TransferScreen} />
         </Stack.Navigator>
         <StatusBar style="dark" />
       </NavigationContainer>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Clipboard, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { BottomNav } from '../../components/ui/DashboardLayout';
@@ -12,6 +12,7 @@ import { getErrorMessage } from '../../utils/handleApiError';
 const WALLET_TABS = ['Overview', 'Transactions', 'Savings'];
 
 export default function WalletScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState('Overview');
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -120,7 +121,7 @@ export default function WalletScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Feather name="arrow-left" size={22} color={COLORS.text} />
         </TouchableOpacity>
@@ -182,25 +183,44 @@ export default function WalletScreen({ navigation }: any) {
 
             {/* Action Buttons */}
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => {}}
+                activeOpacity={0.8}
+              >
                 <View style={styles.actionIconCircle}>
                   <Ionicons name="add" size={20} color={COLORS.primary} />
                 </View>
                 <Text style={styles.actionLabel}>Add Money</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('Transfer')}
+                activeOpacity={0.8}
+              >
                 <View style={styles.actionIconCircle}>
                   <Ionicons name="arrow-up" size={20} color={COLORS.primary} />
                 </View>
                 <Text style={styles.actionLabel}>Send</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('Transfer')}
+                activeOpacity={0.8}
+              >
                 <View style={styles.actionIconCircle}>
                   <Ionicons name="swap-horizontal" size={20} color={COLORS.primary} />
                 </View>
                 <Text style={styles.actionLabel}>Transfer</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => {}}
+                activeOpacity={0.8}
+              >
                 <View style={styles.actionIconCircle}>
                   <Ionicons name="receipt-outline" size={20} color={COLORS.primary} />
                 </View>

@@ -11,8 +11,9 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { formatCurrency, formatNumber } from '../../utils/formatCurrency';
 import { useAppStore } from '../../store/useAppStore';
 import { authService } from '../../services/auth'
-import { getJobsFeed } from '../../services/jobsService';
-import { getWallet } from '../../services/walletService';
+import { getJobsFeed, getMyJobs } from '../../services/jobsService'
+import { getWallet } from '../../services/walletService'
+import { checkLoanEligibility } from '../../services/financialService'
 import { getErrorMessage } from '../../utils/handleApiError';
 
 const NAV_TABS = [
@@ -35,6 +36,7 @@ export default function HomeScreen({ navigation }: any) {
   const wallet = useAppStore((state) => state.wallet);
   const user = useAppStore((state) => state.user);
   const jobs = useAppStore((state) => state.jobsFeed);
+  const [myJobs, setMyJobs] = useState<any[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const setWallet = useAppStore((state) => state.setWallet);
@@ -54,13 +56,20 @@ export default function HomeScreen({ navigation }: any) {
         setUser(profileData);
       }
 
-      const [walletData, jobsData] = await Promise.all([
+      const [walletData, jobsData, eligibilityData, myJobsData] = await Promise.all([
         getWallet(),
         getJobsFeed(),
+        checkLoanEligibility().catch(() => null),
+        getMyJobs().catch(() => []),
       ])
 
       if (walletData) setWallet(walletData)
       setJobsFeed(Array.isArray(jobsData) ? jobsData : [])
+      setMyJobs(Array.isArray(myJobsData) ? myJobsData : [])
+      
+      if (eligibilityData && eligibilityData.score !== undefined) {
+        useAppStore.getState().setEisScore(eligibilityData.score);
+      }
     } catch (error) {
       setLoadError(getErrorMessage(error, 'Failed to load home data'));
     }
@@ -69,6 +78,7 @@ export default function HomeScreen({ navigation }: any) {
   const displayWallet = wallet;
   const displayUser = user;
   const displayJobs = jobs as any[];
+  const eisScore = useAppStore((state) => state.eisScore);
   const firstName = displayUser?.full_name?.split(' ')[0] || 'there';
 
   return (
@@ -88,7 +98,7 @@ export default function HomeScreen({ navigation }: any) {
         <View style={styles.section}>
           <WalletCard
             balance={formatNumber(parseFloat(displayWallet?.balance || '0'))}
-            score={displayUser?.eis_score || 0}
+            score={eisScore}
             onPrimaryAction={() => navigation.navigate('WalletScreen')}
             onSecondaryAction={() => navigation.navigate('WalletScreen')}
           />
@@ -97,7 +107,7 @@ export default function HomeScreen({ navigation }: any) {
         {/* EIS Score */}
         <View style={styles.section}>
           <ScoreCard
-            score={displayUser?.eis_score || 0}
+            score={eisScore}
           />
         </View>
 
@@ -131,6 +141,60 @@ export default function HomeScreen({ navigation }: any) {
               onPress={() => navigation.navigate('LoansScreen')}
             />
           </ScrollView>
+        </View>
+
+        {/* My Accepted Gigs */}
+        <View style={styles.section}>
+          <SectionHeader
+            title="My Accepted Gigs"
+            onViewAll={() => navigation.navigate('MyJobs')}
+          />
+
+          {myJobs
+            .filter((j) => j?.status === 'accepted' || j?.status === 'ongoing' || j?.status === 'active')
+            .slice(0, 3)
+            .map((job) => {
+              const rawRating = job.employer_rating ?? job.employerRating ?? 0
+              const safeRating =
+                typeof rawRating === 'number'
+                  ? rawRating
+                  : typeof rawRating === 'string'
+                    ? Number(rawRating)
+                    : 0
+
+              const rawEmployer = job.employer_name ?? job.employer ?? 'Employer'
+              const safeEmployer = typeof rawEmployer === 'string' ? rawEmployer : 'Employer'
+
+              const rawPay = job.pay_per_worker ?? job.pay ?? job.amount ?? 0
+              const safePay =
+                typeof rawPay === 'number'
+                  ? rawPay
+                  : typeof rawPay === 'string'
+                    ? Number(rawPay)
+                    : 0
+
+              const rawMatch = job.match_score ?? job.matchScore ?? 0
+              const safeMatch = typeof rawMatch === 'number' ? rawMatch : Number(rawMatch || 0)
+
+              return (
+                <GigCard
+                  key={job.job_id || job.id}
+                  title={typeof job.title === 'string' ? job.title : String(job.title ?? '')}
+                  employer={safeEmployer}
+                  rating={Number.isFinite(safeRating) ? safeRating : 0}
+                  pay={formatCurrency(Number.isFinite(safePay) ? safePay : 0)}
+                  match={Number.isFinite(safeMatch) && safeMatch > 0 ? safeMatch : 98}
+                  icon={SKILL_ICON_MAP[job.skill_required] || 'briefcase-outline'}
+                  onPress={() => navigation.navigate('GigDetail', { job })}
+                />
+              )
+            })}
+
+          {myJobs.filter((j) => j?.status === 'accepted' || j?.status === 'ongoing' || j?.status === 'active').length === 0 && (
+            <Text style={{ fontFamily: FONTS.weights.medium, color: COLORS.textSecondary, marginTop: 8 }}>
+              You haven’t accepted any gigs yet.
+            </Text>
+          )}
         </View>
 
         {/* Jobs Near You */}

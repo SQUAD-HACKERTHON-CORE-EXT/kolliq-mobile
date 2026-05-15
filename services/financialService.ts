@@ -19,6 +19,7 @@ const unwrap = (response: any, keys: string[] = []) => {
 
 const normalizeLoanEligibility = (data: any) => ({
   eligible: Boolean(data?.eligible ?? data?.is_eligible ?? data?.available ?? false),
+  score: toNumber(data?.score ?? 0),
   max_amount: toNumber(data?.max_amount ?? data?.amount ?? data?.limit ?? 0),
   interest_rate: toNumber(data?.interest_rate ?? data?.rate ?? 0),
   tenure_days: toNumber(data?.tenure_days ?? data?.tenure ?? 0),
@@ -37,9 +38,9 @@ const normalizeSavings = (data: any) => ({
 
 const normalizeInsurance = (data: any) => ({
   unlocked: Boolean(data?.unlocked ?? true),
-  active: Boolean(data?.active ?? data?.is_active ?? false),
-  premium_per_day: String(data?.premium_per_day ?? data?.premium ?? 0),
-  coverage_limit: String(data?.coverage_limit ?? data?.coverage ?? 0),
+  active: Boolean(data?.has_active_policy ?? data?.active ?? data?.is_active ?? false),
+  premium_per_day: String(data?.active_policy?.premium_per_day ?? data?.premium_per_day ?? data?.premium ?? 0),
+  coverage_limit: String(data?.active_policy?.coverage_limit ?? data?.coverage_limit ?? data?.coverage ?? 0),
   paused: Boolean(data?.paused ?? false),
 })
 

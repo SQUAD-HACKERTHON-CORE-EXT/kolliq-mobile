@@ -121,7 +121,7 @@ export default function TraderIdentityScreen({ navigation }: any) {
       const [profileRes, savRes, loanRes, insRes] = await Promise.allSettled([
         apiClient.get(ENDPOINTS.PROFILE),
         savingsUnlocked ? getSavings() : Promise.resolve(null),
-        loansUnlocked ? checkLoanEligibility() : Promise.resolve(null),
+        checkLoanEligibility(),
         insuranceUnlocked ? getInsurance() : Promise.resolve(null),
       ]);
 
@@ -139,12 +139,16 @@ export default function TraderIdentityScreen({ navigation }: any) {
           business_name: p.business_name,
           squad_account_number: p.squad_account_number,
           squad_bank_name: p.squad_bank_name,
-          eis_score: p.eis_score ?? 0,
         });
       }
 
       if (savRes.status === 'fulfilled') setSavings(savRes.value);
-      if (loanRes.status === 'fulfilled') setLoanEligibility(loanRes.value);
+      if (loanRes.status === 'fulfilled' && loanRes.value) {
+        setLoanEligibility(loanRes.value);
+        if ((loanRes.value as any).score !== undefined) {
+          useAppStore.getState().setEisScore((loanRes.value as any).score);
+        }
+      }
       if (insRes.status === 'fulfilled') setInsurance(insRes.value);
     } finally {
       setLoading(false);
