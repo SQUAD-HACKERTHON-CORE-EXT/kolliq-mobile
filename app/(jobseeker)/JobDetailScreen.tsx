@@ -45,9 +45,9 @@ export default function JobDetailScreen() {
           </View>
           <Text style={styles.title}>{job.title || 'Job detail'}</Text>
           <View style={styles.employerRow}>
-            <Text style={styles.employerText}>{job.employer || 'Employer'}</Text>
+            <Text style={styles.employerText}>{job.employer_name || job.employer || 'Employer'}</Text>
             <Ionicons name="star" size={14} color="#F4721E" style={{ marginLeft: 4, marginRight: 2 }} />
-            <Text style={styles.employerText}>{job.rating}</Text>
+            <Text style={styles.employerText}>{job.employer_rating || job.rating || '—'}</Text>
           </View>
 
           <View style={styles.badge}>
@@ -59,19 +59,19 @@ export default function JobDetailScreen() {
         <View style={styles.infoSection}>
           <View style={styles.infoRow}>
             <Ionicons name="location-outline" size={20} color="#888880" />
-            <Text style={styles.infoText}>{job.location || 'Location unavailable'}</Text>
+            <Text style={styles.infoText}>{job.location_area || job.location_city || job.location || 'Location unavailable'}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="time-outline" size={20} color="#888880" />
-            <Text style={styles.infoText}>{job.duration || '—'} hours</Text>
+            <Text style={styles.infoText}>{job.duration_hours || job.duration || '—'} hours</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={20} color="#888880" />
-            <Text style={styles.infoText}>{job.startTime || '—'}</Text>
+            <Text style={styles.infoText}>{job.start_time || job.startTime || '—'}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="people-outline" size={20} color="#888880" />
-            <Text style={styles.infoText}>{job.workersNeeded || '—'} workers needed</Text>
+            <Text style={styles.infoText}>{job.workers_needed || job.workersNeeded || '—'} workers needed</Text>
           </View>
         </View>
 

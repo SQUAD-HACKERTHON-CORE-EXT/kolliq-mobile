@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout';
+import { useAppStore } from '../../store/useAppStore';
 import { Card } from '../../components/ui/Card';
+import { getProfile } from '../../services/authService';
+import { getWallet } from '../../services/walletService';
+import { getMyJobs } from '../../services/jobsService';
 
 const NAV_TABS = [
   { id: 'EmployerDashboard', label: 'Dashboard', icon: 'apps-outline', activeIcon: 'apps' },
@@ -14,6 +18,39 @@ const NAV_TABS = [
 ] as const;
 
 export default function EmployerProfile({ navigation }: any) {
+  const storeUser = useAppStore((s) => s.user)
+  const setUser = useAppStore((s) => s.setUser)
+  const [jobsCount, setJobsCount] = useState(0)
+  const [escrowRate, setEscrowRate] = useState(0)
+
+  useEffect(() => {
+    loadProfileData()
+  }, [])
+
+  const loadProfileData = async () => {
+    try {
+      const data: any = await getProfile()
+      if (data) setUser(data)
+    } catch (e) {
+      console.log('Error loading employer profile', e)
+    }
+
+    try {
+      const myJobs: any = await getMyJobs()
+      const jobsArray = Array.isArray(myJobs) ? myJobs : (myJobs?.jobs ?? myJobs?.results ?? [])
+      setJobsCount(jobsArray.length)
+    } catch (e) {
+      setJobsCount(0)
+    }
+
+    try {
+      const w: any = await getWallet()
+      setEscrowRate(w?.escrow_rate ?? 0)
+    } catch (e) {
+      // ignore wallet errors
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -31,7 +68,7 @@ export default function EmployerProfile({ navigation }: any) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.subtitle}>Employer Profile</Text>
-        <Text style={styles.title}>Alhaji Musa Stores</Text>
+        <Text style={styles.title}>{useAppStore((s) => s.user?.business_name ?? s.user?.full_name ?? 'Employer')}</Text>
 
         {/* Rating Card */}
         <Card variant="elevated" style={styles.ratingCard}>
@@ -45,12 +82,12 @@ export default function EmployerProfile({ navigation }: any) {
           
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>124</Text>
+              <Text style={styles.statValue}>{jobsCount}</Text>
               <Text style={styles.statLabel}>Total Hires</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>100%</Text>
+              <Text style={styles.statValue}>{escrowRate}%</Text>
               <Text style={styles.statLabel}>Escrow Rate</Text>
             </View>
           </View>
@@ -104,8 +141,8 @@ export default function EmployerProfile({ navigation }: any) {
       </ScrollView>
 
       <BottomNav 
-        activeTab="profile" 
-        onTabPress={(tab) => navigation.navigate(tab === 'profile' ? 'EmployerProfile' : tab)} 
+        activeTab="EmployerProfile" 
+        onTabPress={(tab) => navigation.navigate(tab)} 
         tabs={NAV_TABS as any}
       />
     </SafeAreaView>

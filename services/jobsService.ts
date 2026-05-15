@@ -32,6 +32,11 @@ const normalizeJob = (job: any) => ({
   createdAt: job?.createdAt ?? job?.created_at ?? new Date().toISOString(),
   acceptedBy: job?.acceptedBy ?? job?.accepted_by,
   match_score: toNumber(job?.match_score ?? job?.matchScore ?? 0),
+  score_breakdown: {
+    location: toNumber(job?.score_breakdown?.location ?? job?.score_breakdown?.location_score ?? 0),
+    skill: toNumber(job?.score_breakdown?.skill ?? job?.score_breakdown?.skill_score ?? 0),
+    availability: toNumber(job?.score_breakdown?.availability ?? job?.score_breakdown?.availability_score ?? 0),
+  },
   escrow_funded: Boolean(job?.escrow_funded ?? job?.is_escrow_funded ?? false),
 })
 
@@ -43,9 +48,24 @@ const unwrapJobs = (response: any) => {
   return []
 }
 
+const unwrapJobsFeedResponse = (response: any) => {
+  const payload = response?.data ?? response ?? {}
+  const jobs = unwrapJobs(payload).map(normalizeJob)
+  return {
+    jobs,
+    count: toNumber(payload?.count ?? jobs.length, jobs.length),
+    message: payload?.message ?? '',
+  }
+}
+
 export const getJobsFeed = async () => {
   const response = await apiClient.get(ENDPOINTS.JOBS_FEED)
   return unwrapJobs(response).map(normalizeJob)
+}
+
+export const getJobsFeedResponse = async () => {
+  const response = await apiClient.get(ENDPOINTS.JOBS_FEED)
+  return unwrapJobsFeedResponse(response)
 }
 
 export const getJobDetail = async (jobId: string) => {

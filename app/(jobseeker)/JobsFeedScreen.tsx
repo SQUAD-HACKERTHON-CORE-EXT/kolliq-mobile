@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { BottomNav } from '../../components/ui/DashboardLayout';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useAppStore } from '../../store/useAppStore';
-import { getJobsFeed } from '../../services/jobsService';
+import { getJobsFeedResponse } from '../../services/jobsService';
 import { getErrorMessage } from '../../utils/handleApiError';
 
 const NAV_TABS = [
@@ -16,21 +17,10 @@ const NAV_TABS = [
   { id: 'JobseekerProfile', label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
 ] as const;
 
-const SKILL_ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
-  delivery: 'bicycle-outline',
-  market: 'storefront-outline',
-  construction: 'hammer-outline',
-  cleaning: 'sparkles-outline',
-  security: 'shield-outline',
-  cooking: 'restaurant-outline',
-};
-
-const FILTER_CHIPS = ['All', 'Delivery', 'Market', 'Construction', 'Cleaning'];
-
 export default function JobsFeedScreen({ navigation }: any) {
-  const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [retryKey, setRetryKey] = useState(0);
+  const [feedCount, setFeedCount] = useState(0);
+  const [feedMessage, setFeedMessage] = useState('');
 
   const jobsFeed = useAppStore((state) => state.jobsFeed);
   const jobsLoading = useAppStore((state) => state.jobsLoading);
@@ -40,30 +30,39 @@ export default function JobsFeedScreen({ navigation }: any) {
   const setJobsFeed = useAppStore((state) => state.setJobsFeed);
   const setJobsLoading = useAppStore((state) => state.setJobsLoading);
 
-  useEffect(() => {
-    loadJobs();
-  }, [retryKey]);
-
-  const loadJobs = async () => {
+  const loadJobs = useCallback(async () => {
     try {
       setLoadError(null);
       setJobsLoading(true);
-      const data = await getJobsFeed();
-      setJobsFeed(Array.isArray(data) ? data : []);
+      const response = await getJobsFeedResponse();
+      setJobsFeed(Array.isArray(response.jobs) ? response.jobs : []);
+      setFeedCount(response.count ?? 0);
+      setFeedMessage(response.message ?? '');
     } catch (error) {
       setLoadError(getErrorMessage(error, 'Failed to load jobs'));
     } finally {
       setJobsLoading(false);
     }
-  };
+  }, [setJobsFeed, setJobsLoading]);
 
-  const jobs = jobsFeed;
+  useFocusEffect(
+    useCallback(() => {
+      loadJobs();
+    }, [loadJobs])
+  );
+
+  const jobs = jobsFeed as any[];
 
   const filteredJobs = jobs.filter((job) => {
-    const matchesFilter = activeFilter === 'All' || job.skill_required.toLowerCase() === activeFilter.toLowerCase();
-    const matchesSearch = !searchQuery || job.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+    const search = searchQuery.trim().toLowerCase();
+    if (!search) return true;
+
+    return [job.title, job.location_area, job.employer_name]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(search));
   });
+
+  const emptyMessage = feedMessage || 'No matching jobs right now. Check back soon!';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -71,7 +70,7 @@ export default function JobsFeedScreen({ navigation }: any) {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Jobs Feed</Text>
-          <Text style={styles.headerSubtitle}>{user?.location_city || 'Nearby'} • {jobs.length} jobs available</Text>
+          <Text style={styles.headerSubtitle}>{user?.location_city || 'Nearby'} • {feedCount || jobs.length} jobs available</Text>
         </View>
         <TouchableOpacity style={styles.filterButton}>
           <Ionicons name="options-outline" size={20} color={COLORS.text} />
@@ -97,19 +96,6 @@ export default function JobsFeedScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* Filter Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipContainer} contentContainerStyle={styles.chipContent}>
-        {FILTER_CHIPS.map((chip) => (
-          <TouchableOpacity
-            key={chip}
-            style={[styles.chip, activeFilter === chip && styles.chipActive]}
-            onPress={() => setActiveFilter(chip)}
-          >
-            <Text style={[styles.chipText, activeFilter === chip && styles.chipTextActive]}>{chip}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
       {/* Job Cards */}
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -123,25 +109,25 @@ export default function JobsFeedScreen({ navigation }: any) {
             <View style={styles.emptyState}>
               <Ionicons name="alert-circle-outline" size={48} color={COLORS.error} />
               <Text style={styles.emptyTitle}>{loadError}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={() => setRetryKey(k => k + 1)}>
+              <TouchableOpacity style={styles.retryButton} onPress={loadJobs}>
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
             </View>
         ) : filteredJobs.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={48} color={COLORS.textMuted} />
-            <Text style={styles.emptyTitle}>No matching jobs right now</Text>
-              <Text style={styles.emptySubtitle}>Check back soon.</Text>
-              {jobsLoading === false && (
-              <TouchableOpacity style={styles.retryButton} onPress={() => setRetryKey(k => k + 1)}>
-                <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.emptyTitle}>{emptyMessage}</Text>
+            <Text style={styles.emptySubtitle}>Top matched jobs for workers only.</Text>
+            {jobsLoading === false && (
+              <TouchableOpacity style={styles.retryButton} onPress={loadJobs}>
+                <Text style={styles.retryButtonText}>Refresh feed</Text>
               </TouchableOpacity>
             )}
           </View>
         ) : (
           filteredJobs.map((job) => (
             <TouchableOpacity
-              key={job.job_id || job.id}
+              key={job.id}
               activeOpacity={0.8}
               style={styles.jobCard}
               onPress={() => navigation.navigate('GigDetail', { job })}
@@ -149,7 +135,7 @@ export default function JobsFeedScreen({ navigation }: any) {
               {/* Card Header */}
               <View style={styles.jobCardHeader}>
                 <View style={styles.jobIconBox}>
-                  <Ionicons name={SKILL_ICON_MAP[job.skill_required] || 'briefcase-outline'} size={22} color={COLORS.primary} />
+                  <Ionicons name="briefcase-outline" size={22} color={COLORS.primary} />
                 </View>
                 <View style={styles.matchBadge}>
                   <Ionicons name="flash" size={12} color={job.match_score >= 80 ? COLORS.primary : COLORS.accent} />
@@ -189,12 +175,22 @@ export default function JobsFeedScreen({ navigation }: any) {
                   <Ionicons name="navigate-outline" size={12} color={COLORS.primary} />
                   <Text style={styles.locationText}>{job.location_area}</Text>
                 </View>
-                {job.escrow_funded && (
-                  <View style={styles.escrowBadge}>
-                    <Ionicons name="shield-checkmark" size={12} color={COLORS.primary} />
-                    <Text style={styles.escrowText}>Escrow Funded</Text>
-                  </View>
-                )}
+                <Text style={styles.ratingText}>{job.employer_rating} rating</Text>
+              </View>
+
+              <View style={styles.breakdownRow}>
+                <View style={styles.breakdownChip}>
+                  <Text style={styles.breakdownLabel}>Location</Text>
+                  <Text style={styles.breakdownValue}>{job.score_breakdown?.location ?? 0}</Text>
+                </View>
+                <View style={styles.breakdownChip}>
+                  <Text style={styles.breakdownLabel}>Skill</Text>
+                  <Text style={styles.breakdownValue}>{job.score_breakdown?.skill ?? 0}</Text>
+                </View>
+                <View style={styles.breakdownChip}>
+                  <Text style={styles.breakdownLabel}>Availability</Text>
+                  <Text style={styles.breakdownValue}>{job.score_breakdown?.availability ?? 0}</Text>
+                </View>
               </View>
             </TouchableOpacity>
           ))
@@ -204,7 +200,14 @@ export default function JobsFeedScreen({ navigation }: any) {
 
       <BottomNav
         activeTab="JobsFeed"
-        onTabPress={(tab) => navigation.navigate(tab)}
+        onTabPress={(tab) => {
+          if (tab === 'JobsFeed') {
+            loadJobs();
+            return;
+          }
+
+          navigation.navigate(tab);
+        }}
         tabs={NAV_TABS as any}
       />
     </SafeAreaView>
@@ -265,37 +268,14 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.weights.medium,
     color: COLORS.text,
   },
-  chipContainer: {
-    maxHeight: 44,
-    marginBottom: SPACING.md,
-  },
-  chipContent: {
-    paddingHorizontal: LAYOUT.paddingHorizontal,
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: BORDER_RADIUS.pill,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  chipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    fontSize: 13,
-    fontFamily: FONTS.weights.semibold,
-    color: COLORS.textSecondary,
-  },
-  chipTextActive: {
-    color: COLORS.white,
-  },
   scrollContent: {
     paddingHorizontal: LAYOUT.paddingHorizontal,
     paddingTop: SPACING.sm,
+  },
+  centerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 80,
   },
   jobCard: {
     backgroundColor: COLORS.white,
@@ -399,24 +379,47 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.weights.medium,
     color: COLORS.primary,
   },
-  escrowBadge: {
+  breakdownRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.badgeGreen,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BORDER_RADIUS.pill,
+    gap: 8,
+    marginTop: 14,
   },
-  escrowText: {
-    fontSize: 11,
+  breakdownChip: {
+    flex: 1,
+    borderRadius: BORDER_RADIUS.pill,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: COLORS.surfaceAlt,
+  },
+  breakdownLabel: {
+    fontSize: 10,
+    fontFamily: FONTS.weights.semibold,
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  breakdownValue: {
+    fontSize: 14,
     fontFamily: FONTS.weights.bold,
-    color: COLORS.primary,
+    color: COLORS.text,
+    marginTop: 2,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 80,
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: BORDER_RADIUS.pill,
+    backgroundColor: COLORS.primary,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    fontFamily: FONTS.weights.semibold,
+    color: COLORS.white,
   },
   emptyTitle: {
     fontSize: 18,

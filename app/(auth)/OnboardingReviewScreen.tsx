@@ -91,7 +91,7 @@ const OnboardingReviewScreen = () => {
       const { tokens, user } = response
       
       // Store user role in SecureStore for auth check
-      await SecureStore.setItemAsync('role', user.role)
+      await SecureStore.setItemAsync('role', String(user.role))
       
       // Update Zustand store
       const userData: any = {

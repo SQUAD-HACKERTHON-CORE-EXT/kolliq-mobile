@@ -1,5 +1,5 @@
 export const ENDPOINTS = {
-  // Auth endpoints - Node.js middleware
+  // Auth endpoints - Django via middleware
   REQUEST_OTP: '/auth/request-otp',
   VERIFY_OTP: '/auth/verify-otp',
   REGISTER: '/api/auth/register/',

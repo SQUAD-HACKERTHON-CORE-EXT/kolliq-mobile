@@ -35,6 +35,10 @@ import JobsFeedScreen from './app/(jobseeker)/JobsFeedScreen';
 import GigDetailScreen from './app/(jobseeker)/GigDetailScreen';
 import JobseekerProfile from './app/(jobseeker)/ProfileScreen';
 import TraderIdentity from './app/(trader)/IdentityScreen';
+import TraderMarketScreen from './app/(trader)/TraderMarketScreen';
+import TraderIdentityScreen from './app/(trader)/TraderIdentityScreen';
+import TraderAccountScreen from './app/(trader)/TraderAccountScreen';
+import CreateListingScreen from './app/(trader)/CreateListingScreen';
 import EmployerDashboard from './app/(employer)/DashboardScreen';
 import EmployerProfile from './app/(employer)/ProfileScreen';
 import WorkersScreen from './app/(employer)/WorkersScreen';
@@ -163,6 +167,10 @@ export default function App() {
           
           {/* Trader Routes */}
           <Stack.Screen name="TraderHome" component={TraderIdentity} />
+          <Stack.Screen name="TraderMarket" component={TraderMarketScreen} />
+          <Stack.Screen name="TraderIdentityTab" component={TraderIdentityScreen} />
+          <Stack.Screen name="TraderAccount" component={TraderAccountScreen} />
+          <Stack.Screen name="CreateListing" component={CreateListingScreen} />
           
           {/* Shared Routes */}
           <Stack.Screen name="WalletScreen" component={WalletScreen} />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,9 @@ import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout'
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { WalletCard } from '../../components/ui/WalletCard';
 import { formatCurrency, formatNumber } from '../../utils/formatCurrency';
+import { useAppStore } from '../../store/useAppStore';
+import { getMyJobs } from '../../services/jobsService';
+import { getWallet } from '../../services/walletService';
 
 const NAV_TABS = [
   { id: 'EmployerDashboard', label: 'Dashboard', icon: 'apps-outline', activeIcon: 'apps' },
@@ -17,18 +20,51 @@ const NAV_TABS = [
 ] as const;
 
 export default function DashboardScreen({ navigation }: any) {
+  const user = useAppStore((s) => s.user)
+  const [wallet, setWallet] = useState<any>(null)
+  const [jobs, setJobs] = useState<any[]>([])
+  const [loadingJobs, setLoadingJobs] = useState(false)
+  const [loadingWallet, setLoadingWallet] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      setLoadingJobs(true)
+      setLoadingWallet(true)
+      try {
+        const myJobs = await getMyJobs()
+        const data: any = myJobs as any
+        setJobs(Array.isArray(data) ? data : (data?.jobs ?? data?.results ?? []))
+      } catch (e) {
+        setJobs([])
+      } finally {
+        setLoadingJobs(false)
+      }
+
+      try {
+        const w = await getWallet()
+        setWallet(w?.wallet ?? w)
+      } catch (e) {
+        setWallet(null)
+      } finally {
+        setLoadingWallet(false)
+      }
+    }
+
+    load()
+  }, [])
+
   return (
     <SafeAreaView style={styles.container}>
       <DashboardHeader 
-        userName="Alhaji Musa Stores" 
+        userName={user?.business_name ?? user?.full_name ?? 'Employer'} 
         greeting="Employer Dashboard"
         onNotificationPress={() => {}} 
-        onProfilePress={() => navigation.navigate('profile')}
+        onProfilePress={() => navigation.navigate('EmployerProfile')}
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Post Job Hero */}
-        <TouchableOpacity activeOpacity={0.9} style={styles.heroButton} onPress={() => navigation.navigate('PostJobScreen')}>
+        <TouchableOpacity activeOpacity={0.9} style={styles.heroButton} onPress={() => navigation.navigate('PostJob')}>
           <Card background={COLORS.primary} style={styles.heroCard}>
             <View style={styles.heroIconContainer}>
               <Ionicons name="add" size={32} color={COLORS.primaryLight} />
@@ -43,7 +79,7 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.section}>
           <WalletCard 
             title="Escrow Wallet Balance"
-            balance={formatNumber(120500)}
+            balance={loadingWallet ? '—' : formatNumber(wallet?.balance ?? 0)}
             primaryActionTitle="+ Fund Escrow"
             secondaryActionTitle="History"
             onPrimaryAction={() => {}}
@@ -60,18 +96,21 @@ export default function DashboardScreen({ navigation }: any) {
             title="Active Postings" 
             onViewAll={() => {}} 
           />
-          <JobPostingCard 
-            title="Store Assistants Needed"
-            posted="Posted 2h ago"
-            applicants={3}
-            onPress={() => {}}
-          />
-          <JobPostingCard 
-            title="Market Logistics"
-            posted="Posted yesterday"
-            applicants={0}
-            onPress={() => {}}
-          />
+          {loadingJobs ? (
+            <Text>Loading postings…</Text>
+          ) : jobs.length === 0 ? (
+            <Text style={{ color: COLORS.textSecondary }}>No active postings</Text>
+          ) : (
+            jobs.map((job: any) => (
+              <JobPostingCard 
+                key={job.id}
+                title={job.title}
+                posted={`Posted ${job.createdAt ?? ''}`}
+                applicants={job.workers_needed ?? 0}
+                onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
+              />
+            ))
+          )}
         </View>
 
         <View style={styles.section}>
@@ -79,30 +118,17 @@ export default function DashboardScreen({ navigation }: any) {
             title="Top Rated Workers in your area" 
             onViewAll={() => {}} 
           />
-          <RecentHireCard 
-            name="Chidi Okonkwo"
-            rating={4.8}
-            role="Delivery"
-            amount="₦4,000"
-            status="Completed"
-          />
-          <RecentHireCard 
-            name="Ngozi Eze"
-            rating={4.5}
-            role="Cleaning"
-            amount="₦3,500"
-            status="Completed"
-          />
+          <Text style={{ color: COLORS.textSecondary }}>Top workers coming soon.</Text>
         </View>
       </ScrollView>
 
       <BottomNav 
-        activeTab="EmployerHome" 
+        activeTab="EmployerDashboard" 
         onTabPress={(tab) => navigation.navigate(tab)} 
         tabs={NAV_TABS as any}
       />
     </SafeAreaView>
-  );
+  )
 }
 
 const JobPostingCard = ({ title, posted, applicants, onPress }: any) => (

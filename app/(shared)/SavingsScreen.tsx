@@ -1,15 +1,19 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, LAYOUT } from '../../constants';
+import { COLORS, FONTS, SPACING, LAYOUT, BORDER_RADIUS } from '../../constants';
 import { useAppStore } from '../../store/useAppStore';
-import { getSavings } from '../../services/financialService';
+import { getSavings, depositSavings, withdrawSavings } from '../../services/financialService';
 import { getErrorMessage } from '../../utils/handleApiError';
 
 export default function SavingsScreen({ navigation }: any) {
   const savings = useAppStore((state) => state.savings);
   const setSavings = useAppStore((state) => state.setSavings);
+  const [modalType, setModalType] = useState<'deposit' | 'withdraw' | null>(null);
+  const [modalAmount, setModalAmount] = useState('');
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState('');
 
   useEffect(() => {
     loadSavingsData();
@@ -18,11 +22,39 @@ export default function SavingsScreen({ navigation }: any) {
   const loadSavingsData = async () => {
     try {
       const data = await getSavings();
-      if (data) {
-        setSavings(data);
-      }
+      if (data) setSavings(data);
     } catch (error) {
       console.log('Savings load error:', getErrorMessage(error, 'Failed to load savings data'));
+    }
+  };
+
+  const openModal = (type: 'deposit' | 'withdraw') => {
+    setModalAmount('');
+    setModalError('');
+    setModalType(type);
+  };
+
+  const handleModalSubmit = async () => {
+    const amount = parseFloat(modalAmount);
+    if (!amount || amount <= 0) {
+      setModalError('Please enter a valid amount');
+      return;
+    }
+    setModalLoading(true);
+    setModalError('');
+    try {
+      if (modalType === 'deposit') {
+        await depositSavings(amount);
+      } else {
+        await withdrawSavings(amount);
+      }
+      setModalType(null);
+      await loadSavingsData();
+      Alert.alert('Success', modalType === 'deposit' ? 'Amount deposited to savings.' : 'Amount withdrawn to wallet.');
+    } catch (error) {
+      setModalError(getErrorMessage(error, `${modalType === 'deposit' ? 'Deposit' : 'Withdrawal'} failed`));
+    } finally {
+      setModalLoading(false);
     }
   };
 
@@ -68,11 +100,11 @@ export default function SavingsScreen({ navigation }: any) {
 
         {/* Actions */}
         <View style={s.actRow}>
-          <TouchableOpacity style={s.saveBtn}>
+          <TouchableOpacity style={s.saveBtn} onPress={() => openModal('deposit')}>
             <Ionicons name="add-circle-outline" size={20} color={COLORS.white} />
             <Text style={s.saveBtnText}>Save More</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.withdrawBtn}>
+          <TouchableOpacity style={s.withdrawBtn} onPress={() => openModal('withdraw')}>
             <Ionicons name="arrow-down-circle-outline" size={20} color={COLORS.primary} />
             <Text style={s.withdrawText}>Withdraw</Text>
           </TouchableOpacity>
@@ -103,21 +135,47 @@ export default function SavingsScreen({ navigation }: any) {
           <InfoItem icon="shield-checkmark-outline" text="Savings grow your EIS score faster" />
         </View>
 
-        {/* Goal Section */}
-        <Text style={s.sectionTitle}>Savings Goal</Text>
-        <View style={s.goalCard}>
-          <View style={s.goalHeader}>
-            <Text style={s.goalTitle}>Emergency Fund</Text>
-            <Text style={s.goalPct}>30%</Text>
-          </View>
-          <View style={s.progBg}>
-            <View style={[s.progFill, { width: '30%' }]} />
-          </View>
-          <Text style={s.goalSub}>₦3,000 of ₦10,000 goal</Text>
-        </View>
-
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Deposit / Withdraw Modal */}
+      <Modal visible={modalType !== null} transparent animationType="slide" onRequestClose={() => setModalType(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.modalOverlay}>
+          <View style={s.modalSheet}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>{modalType === 'deposit' ? 'Save Money' : 'Withdraw Savings'}</Text>
+              <TouchableOpacity onPress={() => setModalType(null)} style={s.modalClose}>
+                <Ionicons name="close" size={22} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            <Text style={s.modalSub}>
+              {modalType === 'deposit'
+                ? 'Enter amount to move from your wallet to savings.'
+                : 'Enter amount to move from savings to your wallet.'}
+            </Text>
+            <View style={s.amountRow}>
+              <Text style={s.currencySign}>₦</Text>
+              <TextInput
+                style={s.amountInput}
+                placeholder="0.00"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+                value={modalAmount}
+                onChangeText={setModalAmount}
+                autoFocus
+              />
+            </View>
+            {modalError ? <Text style={s.modalError}>{modalError}</Text> : null}
+            <TouchableOpacity style={s.modalBtn} onPress={handleModalSubmit} disabled={modalLoading}>
+              {modalLoading ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <Text style={s.modalBtnText}>{modalType === 'deposit' ? 'Deposit' : 'Withdraw'}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -164,11 +222,16 @@ const s = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 12 },
   infoIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: COLORS.badgeGreen, alignItems: 'center', justifyContent: 'center' },
   infoText: { flex: 1, fontSize: 14, fontFamily: FONTS.weights.medium, color: COLORS.textSecondary, lineHeight: 20 },
-  goalCard: { backgroundColor: COLORS.white, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: COLORS.border },
-  goalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  goalTitle: { fontSize: 15, fontFamily: FONTS.weights.bold, color: COLORS.text },
-  goalPct: { fontSize: 14, fontFamily: FONTS.weights.bold, color: COLORS.primary },
-  progBg: { height: 8, backgroundColor: COLORS.surfaceAlt, borderRadius: 4, marginBottom: 8 },
-  progFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 4 },
-  goalSub: { fontSize: 13, fontFamily: FONTS.weights.medium, color: COLORS.textSecondary },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  modalTitle: { fontSize: 18, fontFamily: FONTS.weights.bold, color: COLORS.text },
+  modalClose: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  modalSub: { fontSize: 14, fontFamily: FONTS.weights.medium, color: COLORS.textSecondary, marginBottom: 20 },
+  amountRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 14, paddingHorizontal: 16, marginBottom: 12, backgroundColor: COLORS.surfaceAlt },
+  currencySign: { fontSize: 24, fontFamily: FONTS.weights.bold, color: COLORS.text, marginRight: 6 },
+  amountInput: { flex: 1, fontSize: 28, fontFamily: FONTS.weights.bold, color: COLORS.text, paddingVertical: 14 },
+  modalError: { fontSize: 13, fontFamily: FONTS.weights.medium, color: COLORS.error, marginBottom: 10 },
+  modalBtn: { backgroundColor: COLORS.primary, height: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  modalBtnText: { fontSize: 16, fontFamily: FONTS.weights.bold, color: COLORS.white },
 });

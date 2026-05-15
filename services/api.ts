@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { BASE_URL } from '../constants/api';
+import { ENDPOINTS } from '../constants/endpoints';
 import { extractApiErrorMessage } from '../utils/handleApiError';
 
 const api: AxiosInstance = axios.create({
@@ -20,6 +21,16 @@ api.interceptors.request.use(async (config) => {
       console.log('📤 API - Request with token:', config.url)
     } else {
       console.log('📤 API - Request without token:', config.url)
+    }
+    // Log login payload with masked PIN for debugging
+    try {
+      const data = typeof config.data === 'string' ? JSON.parse(config.data) : config.data
+      if (config.url === ENDPOINTS.LOGIN && data) {
+        const masked = { ...data, pin: data.pin ? `****(${String(data.pin).length})` : undefined }
+        console.log('📤 API - Login payload:', masked)
+      }
+    } catch (e) {
+      // ignore JSON parse errors
     }
   } catch (error) {
     console.error('Error fetching auth token:', error);

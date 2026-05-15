@@ -4,6 +4,19 @@ import * as SecureStore from 'expo-secure-store'
 import { ENDPOINTS } from '../constants/endpoints'
 import { useAppStore } from '../store/useAppStore'
 
+const normalizePhone = (phone: string) => {
+  if (!phone) return phone
+  let p = phone.trim()
+  // Remove any leading + for normalization then re-add
+  if (p.startsWith('+')) p = p.slice(1)
+  // If local format starts with 0 => convert to international NG (234)
+  if (p.startsWith('0')) p = `234${p.slice(1)}`
+  // If user entered 10-digit without leading zero
+  if (!p.startsWith('234') && p.length === 10) p = `234${p}`
+  // Ensure leading + for API contract
+  return `+${p}`
+}
+
 export const register = async (data: {
   phone: string
   pin: string
@@ -32,62 +45,77 @@ export const register = async (data: {
     channel: 'app',
   })
   const payload = response.data
-  await SecureStore.setItemAsync('access_token', payload.access)
-  await SecureStore.setItemAsync('refresh_token', payload.refresh)
-  await SecureStore.setItemAsync('user_id', payload.id)
-  await SecureStore.setItemAsync('role', payload.role)
-  if (payload.squad_account_number) {
-    await SecureStore.setItemAsync('squad_account_number', payload.squad_account_number)
+  // API may return { access, refresh, user } or a flattened payload — normalize
+  const access = payload.access ?? payload.token ?? null
+  const refresh = payload.refresh ?? null
+  const user = payload.user ?? payload
+
+  if (access) await SecureStore.setItemAsync('access_token', String(access))
+  if (refresh) await SecureStore.setItemAsync('refresh_token', String(refresh))
+  if (user?.id) await SecureStore.setItemAsync('user_id', String(user.id))
+  if (user?.role) await SecureStore.setItemAsync('role', String(user.role))
+  if (user?.squad_account_number) {
+    await SecureStore.setItemAsync('squad_account_number', String(user.squad_account_number))
   }
-  if (payload.squad_bank_name) {
-    await SecureStore.setItemAsync('squad_bank_name', payload.squad_bank_name)
+  if (user?.squad_bank_name) {
+    await SecureStore.setItemAsync('squad_bank_name', String(user.squad_bank_name))
   }
-  useAppStore.getState().setAuthToken(payload.access)
+
+  useAppStore.getState().setAuthToken(access)
   useAppStore.getState().setLoggedIn(true)
   useAppStore.getState().setUser({
-    id: payload.id,
-    phone: payload.phone,
-    full_name: payload.full_name,
-    role: payload.role,
-    squad_account_number: payload.squad_account_number,
-    squad_bank_name: payload.squad_bank_name,
-    walletAccountNumber: payload.squad_account_number,
-    walletBankName: payload.squad_bank_name,
-    eis_score: 0,
+    id: user.id,
+    phone: user.phone,
+    full_name: user.full_name,
+    role: user.role,
+    squad_account_number: user.squad_account_number,
+    squad_bank_name: user.squad_bank_name,
+    walletAccountNumber: user.squad_account_number,
+    walletBankName: user.squad_bank_name,
+    eis_score: user.eis_score ?? 0,
   })
-  return payload
+
+  return { ...user, access, refresh }
 }
 
 export const login = async (phone: string, pin: string) => {
+  const payloadPhone = normalizePhone(phone)
+  console.log('📤 Login payload:', { phone: payloadPhone, pinLength: pin.length })
   const response = await api.post(ENDPOINTS.LOGIN, {
-    phone,
+    phone: payloadPhone,
     pin,
   })
   const payload = response.data
-  await SecureStore.setItemAsync('access_token', payload.access)
-  await SecureStore.setItemAsync('refresh_token', payload.refresh)
-  await SecureStore.setItemAsync('user_id', payload.id)
-  await SecureStore.setItemAsync('role', payload.role)
-  if (payload.squad_account_number) {
-    await SecureStore.setItemAsync('squad_account_number', payload.squad_account_number)
+  const access = payload.access ?? payload.token ?? null
+  const refresh = payload.refresh ?? null
+  const user = payload.user ?? payload
+
+  if (access) await SecureStore.setItemAsync('access_token', String(access))
+  if (refresh) await SecureStore.setItemAsync('refresh_token', String(refresh))
+  if (user?.id) await SecureStore.setItemAsync('user_id', String(user.id))
+  if (user?.role) await SecureStore.setItemAsync('role', String(user.role))
+  if (user?.squad_account_number) {
+    await SecureStore.setItemAsync('squad_account_number', String(user.squad_account_number))
   }
-  if (payload.squad_bank_name) {
-    await SecureStore.setItemAsync('squad_bank_name', payload.squad_bank_name)
+  if (user?.squad_bank_name) {
+    await SecureStore.setItemAsync('squad_bank_name', String(user.squad_bank_name))
   }
-  useAppStore.getState().setAuthToken(payload.access)
+
+  useAppStore.getState().setAuthToken(access)
   useAppStore.getState().setLoggedIn(true)
   useAppStore.getState().setUser({
-    id: payload.id,
-    phone: payload.phone,
-    full_name: payload.full_name,
-    role: payload.role,
-    squad_account_number: payload.squad_account_number,
-    squad_bank_name: payload.squad_bank_name,
-    walletAccountNumber: payload.squad_account_number,
-    walletBankName: payload.squad_bank_name,
-    eis_score: 0,
+    id: user.id,
+    phone: user.phone,
+    full_name: user.full_name,
+    role: user.role,
+    squad_account_number: user.squad_account_number,
+    squad_bank_name: user.squad_bank_name,
+    walletAccountNumber: user.squad_account_number,
+    walletBankName: user.squad_bank_name,
+    eis_score: user.eis_score ?? 0,
   })
-  return payload
+
+  return { ...user, access, refresh }
 }
 
 export const logout = async () => {
@@ -103,6 +131,7 @@ export const logout = async () => {
     await SecureStore.deleteItemAsync('refresh_token')
     await SecureStore.deleteItemAsync('user_id')
     await SecureStore.deleteItemAsync('role')
+    useAppStore.getState().resetStore()
   }
 }
 
@@ -126,7 +155,7 @@ export const changePin = async (current_pin: string, new_pin: string) => {
 }
 
 export const requestPinReset = async (phone: string) => {
-  return await apiClient.post(ENDPOINTS.RESET_PIN_REQUEST, { phone })
+  return await apiClient.post(ENDPOINTS.RESET_PIN_REQUEST, { phone: normalizePhone(phone) })
 }
 
 export const confirmPinReset = async (
@@ -135,7 +164,7 @@ export const confirmPinReset = async (
   new_pin: string
 ) => {
   return await apiClient.post(ENDPOINTS.RESET_PIN_CONFIRM, {
-    phone,
+    phone: normalizePhone(phone),
     otp,
     new_pin,
   })

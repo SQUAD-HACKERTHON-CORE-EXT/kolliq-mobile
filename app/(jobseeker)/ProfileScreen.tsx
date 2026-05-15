@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { DashboardHeader, BottomNav } from '../../components/ui/DashboardLayout';
 import { Card } from '../../components/ui/Card';
 import { useAppStore } from '../../store/useAppStore';
-import { getProfile } from '../../services/authService';
+import { getProfile, logout } from '../../services/authService';
+import { getMyJobs, getUserRatings } from '../../services/jobsService';
 
 const NAV_TABS = [
   { id: 'Home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
@@ -18,6 +19,19 @@ const NAV_TABS = [
 export default function JobseekerProfile({ navigation }: any) {
   const storeUser = useAppStore((state) => state.user);
   const setUser = useAppStore((state) => state.setUser);
+  const [gigsCount, setGigsCount] = useState<number | null>(null);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+    } catch (error) {
+      console.log('Logout failed:', error);
+    }
+  };
 
   useEffect(() => {
     loadProfileData();
@@ -25,12 +39,39 @@ export default function JobseekerProfile({ navigation }: any) {
 
   const loadProfileData = async () => {
     try {
-      const data = await getProfile();
-      if (data) {
-        setUser(data);
+      setDataLoading(true);
+      const profileData = await getProfile();
+      if (profileData) setUser(profileData);
+
+      const userId = profileData?.id || storeUser?.id;
+      const [myJobsData, ratingsData] = await Promise.all([
+        getMyJobs().catch(() => null),
+        userId ? getUserRatings(userId).catch(() => null) : Promise.resolve(null),
+      ]);
+
+      // Compute gigs count
+      if (myJobsData != null) {
+        const jobsArr = Array.isArray(myJobsData)
+          ? myJobsData
+          : (myJobsData?.jobs ?? myJobsData?.results ?? []);
+        setGigsCount(jobsArr.length);
+      }
+
+      // Compute average rating and reviews list
+      if (ratingsData != null) {
+        const ratingsArr = Array.isArray(ratingsData)
+          ? ratingsData
+          : (ratingsData?.ratings ?? ratingsData?.results ?? ratingsData?.data ?? []);
+        if (ratingsArr.length > 0) {
+          const total = ratingsArr.reduce((sum: number, r: any) => sum + (r.stars ?? r.rating ?? 0), 0);
+          setAvgRating(parseFloat((total / ratingsArr.length).toFixed(1)));
+          setReviews(ratingsArr);
+        }
       }
     } catch (error) {
       console.log('Profile load error:', error);
+    } finally {
+      setDataLoading(false);
     }
   };
 
@@ -44,6 +85,9 @@ export default function JobseekerProfile({ navigation }: any) {
           <Feather name="arrow-left" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.iconButtonDanger} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={22} color={COLORS.error} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('ChangePin')}>
             <Ionicons name="settings-outline" size={24} color={COLORS.text} />
           </TouchableOpacity>
@@ -75,12 +119,20 @@ export default function JobseekerProfile({ navigation }: any) {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>12</Text>
+            {dataLoading && gigsCount === null ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Text style={styles.statValue}>{gigsCount ?? '—'}</Text>
+            )}
             <Text style={styles.statLabel}>Gigs Done</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>4.8</Text>
+            {dataLoading && avgRating === null ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Text style={styles.statValue}>{avgRating ?? '—'}</Text>
+            )}
             <Text style={styles.statLabel}>Rating</Text>
           </View>
         </View>
@@ -100,26 +152,30 @@ export default function JobseekerProfile({ navigation }: any) {
         {/* Reviews */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Reviews</Text>
-          <Card variant="outline" style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <Text style={styles.reviewEmployer}>FastLogistics Ltd</Text>
-              <View style={styles.ratingBox}>
-                <Ionicons name="star" size={12} color="#F59E0B" />
-                <Text style={styles.ratingText}>5.0</Text>
-              </View>
+          {dataLoading && reviews.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
             </View>
-            <Text style={styles.reviewText}>"Great delivery rider, always on time and very professional. Would hire again."</Text>
-          </Card>
-          <Card variant="outline" style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <Text style={styles.reviewEmployer}>Mama Ngozi Foods</Text>
-              <View style={styles.ratingBox}>
-                <Ionicons name="star" size={12} color="#F59E0B" />
-                <Text style={styles.ratingText}>4.5</Text>
-              </View>
-            </View>
-            <Text style={styles.reviewText}>"Very helpful and hardworking. Handled the catering equipment carefully."</Text>
-          </Card>
+          ) : reviews.length === 0 ? (
+            <Card variant="outline" style={styles.reviewCard}>
+              <Text style={[styles.reviewText, { textAlign: 'center', fontStyle: 'normal' }]}>No reviews yet. Complete gigs to receive ratings.</Text>
+            </Card>
+          ) : (
+            reviews.slice(0, 5).map((review: any, i: number) => (
+              <Card key={review.id || i} variant="outline" style={styles.reviewCard}>
+                <View style={styles.reviewHeader}>
+                  <Text style={styles.reviewEmployer}>{review.from_name || review.reviewer_name || review.employer_name || 'Employer'}</Text>
+                  <View style={styles.ratingBox}>
+                    <Ionicons name="star" size={12} color="#F59E0B" />
+                    <Text style={styles.ratingText}>{review.stars ?? review.rating ?? 0}</Text>
+                  </View>
+                </View>
+                {(review.comment || review.review) ? (
+                  <Text style={styles.reviewText}>"{review.comment || review.review}"</Text>
+                ) : null}
+              </Card>
+            ))
+          )}
         </View>
 
         {/* Action Menu */}
@@ -145,7 +201,15 @@ export default function JobseekerProfile({ navigation }: any) {
             <Text style={styles.menuText}>Support & Help</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]}>
+          <TouchableOpacity
+            style={[styles.menuItem, { borderBottomWidth: 0 }]}
+            onPress={() => {
+              Alert.alert('Log out', 'Do you want to sign out now?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Log out', style: 'destructive', onPress: handleLogout },
+              ])
+            }}
+          >
             <View style={styles.menuIconBox}>
               <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
             </View>
@@ -189,6 +253,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  iconButtonDanger: {
     width: 44,
     height: 44,
     borderRadius: 22,

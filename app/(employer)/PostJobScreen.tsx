@@ -23,8 +23,9 @@ export default function PostJobScreen() {
   const [title, setTitle] = useState('');
   const [workers, setWorkers] = useState('1');
   const [location, setLocation] = useState('');
+  const [locationCity, setLocationCity] = useState('');
   const [date, setDate] = useState('Select date and time');
-  const [duration, setDuration] = useState('');
+  const [availability, setAvailability] = useState('full_day');
   const [pay, setPay] = useState('');
   const [description, setDescription] = useState('');
   const [posting, setPosting] = useState(false);
@@ -56,9 +57,24 @@ export default function PostJobScreen() {
     );
   }
 
-  const isValid = category !== '' && title !== '' && location !== '' && pay !== '';
+  const isValid = category !== '' && title !== '' && location !== '' && locationCity !== '' && pay !== '';
   const totalAmount = isValid ? parseInt(pay || '0', 10) * parseInt(workers.replace('+', ''), 10) : 0;
   const selectedCategory = categories.find((cat: any) => (cat.id || cat.slug || cat.name) === category)
+
+  // Convert date string to YYYY-MM-DD format for API
+  const formatDateForAPI = (dateStr: string): string | undefined => {
+    if (dateStr === 'Select date and time') return undefined
+    try {
+      // Parse "Tomorrow, 9:00 AM" or similar format
+      const d = new Date(dateStr)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    } catch {
+      return undefined
+    }
+  }
 
   const handlePostJob = async () => {
     if (!isValid) return;
@@ -71,21 +87,22 @@ export default function PostJobScreen() {
         title,
         description: description || undefined,
         location_area: location,
+        location_city: locationCity,
         pay_per_worker: parseInt(pay, 10),
         workers_needed: parseInt(workers.replace('+', ''), 10),
         required_skills: category ? [category] : [],
-        start_date: date !== 'Select date and time' ? date : undefined,
-        availability: duration || undefined,
+        start_date: formatDateForAPI(date),
+        availability: availability || 'full_day',
       });
 
-      const payload = result?.escrow_account || result?.bank_name ? result : result?.job || result;
+      const payload = result?.job_id || result?.id ? result : result?.data || result;
 
       navigation.navigate('EscrowInstructions', {
         job_id: payload.job_id || payload.id || `J${Date.now()}`,
-        escrow_account: payload.escrow_account || payload.account_number || '—',
-        bank_name: payload.bank_name || payload.bank || 'Squad',
-        amount: String(payload.amount || totalAmount),
-        reference: payload.reference || `SQD-${Date.now()}`,
+        escrow_account: payload.escrow_instructions?.account_number || payload.escrow_account || '—',
+        bank_name: payload.escrow_instructions?.bank_name || payload.bank_name || payload.bank || 'Squad',
+        amount: String(payload.total_escrow_amount || payload.amount || totalAmount),
+        reference: payload.escrow_instructions?.reference || payload.reference || `ESC-${Date.now()}`,
       });
     } catch (error: any) {
       setPostError(getErrorMessage(error, 'Failed to post job'));
@@ -163,36 +180,57 @@ export default function PostJobScreen() {
               <Ionicons name="location-outline" size={20} color="#888880" style={styles.inputIcon} />
               <TextInput
                 style={styles.inputWithIcon}
-                placeholder="Enter address"
+                placeholder="Enter area/landmark"
                 placeholderTextColor="#888880"
                 value={location}
                 onChangeText={setLocation}
               />
             </View>
+            <TextInput
+              style={[styles.input, { marginTop: 12 }]}
+              placeholder="City/LGA (e.g. Lagos)"
+              placeholderTextColor="#888880"
+              value={locationCity}
+              onChangeText={setLocationCity}
+            />
             <TouchableOpacity style={styles.locationButton}>
               <Text style={styles.locationButtonText}>Use my location</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Start Date and Time</Text>
-            <TouchableOpacity style={styles.inputContainer} onPress={() => setDate('Tomorrow, 9:00 AM')}>
+            <Text style={styles.sectionTitle}>Start Date</Text>
+            <TouchableOpacity 
+              style={styles.inputContainer} 
+              onPress={() => {
+                const tomorrow = new Date()
+                tomorrow.setDate(tomorrow.getDate() + 1)
+                const formatted = tomorrow.toISOString().split('T')[0]
+                setDate(formatted)
+              }}
+            >
+              <Ionicons name="calendar-outline" size={20} color="#888880" style={styles.inputIcon} />
               <Text style={[styles.inputWithIcon, date === 'Select date and time' && { color: '#888880' }]}>
-                {date}
+                {date === 'Select date and time' ? 'Pick a date' : date}
               </Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Duration in Hours</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. 4"
-              placeholderTextColor="#888880"
-              keyboardType="numeric"
-              value={duration}
-              onChangeText={setDuration}
-            />
+            <Text style={styles.sectionTitle}>Availability</Text>
+            <View style={styles.rowButtons}>
+              {['full_day', 'half_day', 'hourly'].map(opt => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.numButton, availability === opt && styles.numButtonSelected]}
+                  onPress={() => setAvailability(opt)}
+                >
+                  <Text style={[styles.numText, availability === opt && styles.numTextSelected]}>
+                    {opt === 'full_day' ? 'Full Day' : opt === 'half_day' ? 'Half Day' : 'Hourly'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           <View style={styles.section}>

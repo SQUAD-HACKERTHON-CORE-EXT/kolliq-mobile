@@ -68,6 +68,7 @@ export default function HomeScreen({ navigation }: any) {
 
   const displayWallet = wallet;
   const displayUser = user;
+  const displayJobs = jobs as any[];
   const firstName = displayUser?.full_name?.split(' ')[0] || 'there';
 
   return (
@@ -93,62 +94,11 @@ export default function HomeScreen({ navigation }: any) {
           />
         </View>
 
-        {/* Quick Stats */}
-        <View style={styles.quickStatsRow}>
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(27, 77, 62, 0.08)' }]}>
-              <Ionicons name="briefcase-outline" size={16} color={COLORS.primary} />
-            </View>
-            <Text style={styles.statValue}>12</Text>
-            <Text style={styles.statLabel}>Gigs Done</Text>
-          </View>
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(244, 114, 30, 0.08)' }]}>
-              <Ionicons name="cash-outline" size={16} color={COLORS.accent} />
-            </View>
-            <Text style={styles.statValue}>₦42.5K</Text>
-            <Text style={styles.statLabel}>Total Earned</Text>
-          </View>
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(16, 185, 129, 0.08)' }]}>
-              <Ionicons name="star-outline" size={16} color="#10B981" />
-            </View>
-            <Text style={styles.statValue}>4.8</Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
-        </View>
-
         {/* EIS Score */}
         <View style={styles.section}>
           <ScoreCard
             score={displayUser?.eis_score || 0}
-            tier="Tier 2: Savings Active"
-            gigsCompleted={12}
-            ptsToNext={33}
           />
-        </View>
-
-        {/* Unlock Progress */}
-        <View style={styles.unlockCard}>
-          <View style={styles.unlockHeader}>
-            <View style={styles.unlockIconBox}>
-              <Ionicons name="lock-open-outline" size={16} color={COLORS.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.unlockLabel}>Next Unlock</Text>
-              <Text style={styles.unlockFeature}>Micro-Loans</Text>
-            </View>
-            <View style={styles.unlockBadge}>
-              <Text style={styles.unlockBadgeText}>80 pts</Text>
-            </View>
-          </View>
-          <Text style={styles.unlockRequirement}>Complete more gigs to unlock micro-loans</Text>
-          <View style={styles.unlockProgressRow}>
-            <View style={styles.unlockProgressBg}>
-              <View style={[styles.unlockProgressFill, { width: '67%' }]} />
-            </View>
-            <Text style={styles.unlockProgressText}>67/100</Text>
-          </View>
         </View>
 
         {/* Financial Services */}
@@ -157,12 +107,12 @@ export default function HomeScreen({ navigation }: any) {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
             <ProgressCard
               title="Savings"
-              subtitle="₦3,000 saved"
+              subtitle="Manage your savings"
               icon="leaf-outline"
               iconColor="#10B981"
               bgColor="rgba(16, 185, 129, 0.1)"
               active
-              onPress={() => {}}
+              onPress={() => navigation.navigate('SavingsScreen')}
             />
             <ProgressCard
               title="Insurance"
@@ -170,16 +120,15 @@ export default function HomeScreen({ navigation }: any) {
               icon="shield-outline"
               iconColor={COLORS.primary}
               bgColor={COLORS.badgeGreen}
-              onPress={() => {}}
+              onPress={() => navigation.navigate('InsuranceScreen')}
             />
             <ProgressCard
               title="Loans"
-              subtitle="13 pts to unlock"
+              subtitle="Check eligibility"
               icon="cash-outline"
               iconColor={COLORS.textMuted}
               bgColor={COLORS.surfaceAlt}
-              locked
-              onPress={() => {}}
+              onPress={() => navigation.navigate('LoansScreen')}
             />
           </ScrollView>
         </View>
@@ -190,7 +139,7 @@ export default function HomeScreen({ navigation }: any) {
             title="Jobs Near You"
             onViewAll={() => navigation.navigate('JobsFeed')}
           />
-            {jobs.map((job) => (
+            {displayJobs.map((job) => (
             <GigCard
               key={job.job_id || job.id}
               title={job.title}
@@ -244,115 +193,6 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: SPACING.xl,
-  },
-  quickStatsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginTop: SPACING.xl,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  statIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    fontFamily: FONTS.weights.medium,
-    marginTop: 2,
-  },
-  statValue: {
-    fontSize: 18,
-    color: COLORS.text,
-    fontFamily: FONTS.weights.bold,
-  },
-  unlockCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginTop: SPACING.xl,
-  },
-  unlockHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  unlockIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: COLORS.badgeGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  unlockLabel: {
-    fontSize: 11,
-    color: COLORS.primary,
-    fontFamily: FONTS.weights.bold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  unlockFeature: {
-    fontSize: 17,
-    color: COLORS.text,
-    fontFamily: FONTS.weights.bold,
-  },
-  unlockBadge: {
-    backgroundColor: COLORS.badgeGreen,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: BORDER_RADIUS.pill,
-  },
-  unlockBadgeText: {
-    fontSize: 11,
-    color: COLORS.primary,
-    fontFamily: FONTS.weights.bold,
-  },
-  unlockRequirement: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontFamily: FONTS.weights.regular,
-    marginBottom: 14,
-    marginLeft: 48,
-  },
-  unlockProgressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginLeft: 48,
-  },
-  unlockProgressBg: {
-    flex: 1,
-    height: 6,
-    backgroundColor: COLORS.surfaceAlt,
-    borderRadius: 3,
-  },
-  unlockProgressFill: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 3,
-  },
-  unlockProgressText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    fontFamily: FONTS.weights.medium,
   },
   horizontalScroll: {
     marginHorizontal: -LAYOUT.paddingHorizontal,

@@ -1,6 +1,7 @@
 import api from './api';
 import * as SecureStore from 'expo-secure-store';
 import { useAppStore } from '../store/useAppStore';
+import { ENDPOINTS } from '../constants/endpoints';
 
 interface RequestOtpResponse {
   message: string;
@@ -51,16 +52,16 @@ type AuthResponse = {
 }
 
 const persistAuthSession = async (data: AuthResponse) => {
-  await SecureStore.setItemAsync('access_token', data.access);
-  await SecureStore.setItemAsync('refresh_token', data.refresh);
-  await SecureStore.setItemAsync('user_id', data.id);
-  await SecureStore.setItemAsync('role', data.role);
+  await SecureStore.setItemAsync('access_token', String(data.access));
+  await SecureStore.setItemAsync('refresh_token', String(data.refresh));
+  await SecureStore.setItemAsync('user_id', String(data.id));
+  await SecureStore.setItemAsync('role', String(data.role));
 
   if (data.squad_account_number) {
-    await SecureStore.setItemAsync('squad_account_number', data.squad_account_number);
+    await SecureStore.setItemAsync('squad_account_number', String(data.squad_account_number));
   }
   if (data.squad_bank_name) {
-    await SecureStore.setItemAsync('squad_bank_name', data.squad_bank_name);
+    await SecureStore.setItemAsync('squad_bank_name', String(data.squad_bank_name));
   }
 
   useAppStore.getState().setAuthToken(data.access);
@@ -104,13 +105,13 @@ class AuthService {
 
   /**
    * Complete profile / Register user
-    * POST /api/auth/register/
+    * POST /api/users/auth/register/
    */
   async register(
     data: CompleteProfileRequest
   ): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>(
-      '/api/auth/register/',
+      ENDPOINTS.REGISTER,
       {
         ...data,
         phone: this.normalizePhoneNumber(data.phone),
@@ -118,22 +119,54 @@ class AuthService {
       }
     );
 
-    await persistAuthSession(response.data);
-    return response.data;
+    const payload = response.data as any;
+    const access = payload.access ?? payload.token ?? null;
+    const refresh = payload.refresh ?? null;
+    const user = payload.user ?? payload;
+
+    const normalized = {
+      access,
+      refresh,
+      id: user.id,
+      phone: user.phone,
+      full_name: user.full_name,
+      role: user.role,
+      squad_account_number: user.squad_account_number,
+      squad_bank_name: user.squad_bank_name,
+    } as AuthResponse;
+
+    await persistAuthSession(normalized);
+    return { ...user, access, refresh };
   }
 
   /**
    * Login with phone and PIN
-    * POST /api/auth/login/
+    * POST /api/users/auth/login/
    */
   async login(phone: string, pin: string): Promise<AuthResponse> {
-      const response = await api.post<AuthResponse>('/api/auth/login/', {
+      const response = await api.post<AuthResponse>(ENDPOINTS.LOGIN, {
         phone: this.normalizePhoneNumber(phone),
         pin,
       });
 
-      await persistAuthSession(response.data);
-      return response.data;
+      const payload = response.data as any;
+      const access = payload.access ?? payload.token ?? null;
+      const refresh = payload.refresh ?? null;
+      const user = payload.user ?? payload;
+
+      const normalized = {
+        access,
+        refresh,
+        id: user.id,
+        phone: user.phone,
+        full_name: user.full_name,
+        role: user.role,
+        squad_account_number: user.squad_account_number,
+        squad_bank_name: user.squad_bank_name,
+      } as AuthResponse;
+
+      await persistAuthSession(normalized);
+      return { ...user, access, refresh };
   }
 
   /**
@@ -141,8 +174,15 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
+      const refresh = await SecureStore.getItemAsync('refresh_token');
+      if (refresh) {
+        await api.post(ENDPOINTS.LOGOUT, { refresh });
+      }
       await SecureStore.deleteItemAsync('access_token');
       await SecureStore.deleteItemAsync('refresh_token');
+      await SecureStore.deleteItemAsync('user_id');
+      await SecureStore.deleteItemAsync('role');
+      useAppStore.getState().resetStore();
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -171,28 +211,32 @@ class AuthService {
   }
 
   /**
-   * Normalize Nigerian phone number to standard format
-   * Accepts: 0801234567, 2348012345678, +2348012345678, 8012345678
-   * Returns: 2348012345678
+  * Normalize Nigerian phone number to international format
+  * Accepts: 0801234567, 2348012345678, +2348012345678, 8012345678
+  * Returns: +2348012345678
    */
   private normalizePhoneNumber(phoneNumber: string): string {
     // Remove all non-digits and whitespace
     let cleaned = phoneNumber.trim().replace(/\D/g, '');
+    // Normalize to digits-only then convert to international +234 format
+    if (!cleaned) return '';
 
-    // Handle different input formats
-    if (cleaned.startsWith('234')) {
-      // Already in 234 format
-      return cleaned;
-    } else if (cleaned.startsWith('0')) {
-      // Starts with 0, replace with 234
-      return `234${cleaned.slice(1)}`;
-    } else if (cleaned.length === 10) {
-      // 10 digits without country code
-      return `234${cleaned}`;
+    // If starts with 0 (local), drop leading 0 and prepend 234
+    if (cleaned.startsWith('0')) {
+      cleaned = `234${cleaned.slice(1)}`;
     }
 
-    // Default: prepend 234
-    return `234${cleaned}`;
+    // If it's 10 digits without country code, prepend 234
+    if (cleaned.length === 10) {
+      cleaned = `234${cleaned}`;
+    }
+
+    // If it already starts with 234, keep it
+    if (!cleaned.startsWith('234')) {
+      cleaned = `234${cleaned}`;
+    }
+
+    return `+${cleaned}`;
   }
 
   /**
@@ -200,16 +244,16 @@ class AuthService {
    * GET /api/auth/profile/
    */
   async getProfile(): Promise<any> {
-    const response = await api.get<any>('/api/auth/profile/');
+    const response = await api.get<any>(ENDPOINTS.PROFILE);
     return response.data?.data ?? response.data;
   }
 
   /**
    * Get current user info
-   * GET /api/auth/me/
+   * GET /api/users/auth/me/
    */
   async getMe(): Promise<any> {
-    const response = await api.get<any>('/api/auth/me/');
+    const response = await api.get<any>(ENDPOINTS.ME);
     return response.data?.data ?? response.data;
   }
 
@@ -218,16 +262,16 @@ class AuthService {
    * PATCH /api/auth/profile/
    */
   async updateProfile(data: Record<string, any>): Promise<any> {
-    const response = await api.patch<any>('/api/auth/profile/', data);
+    const response = await api.patch<any>(ENDPOINTS.UPDATE_PROFILE, data);
     return response.data?.data ?? response.data;
   }
 
   /**
    * Change PIN
-   * POST /api/auth/change-pin/
+   * POST /api/users/auth/change-pin/
    */
   async changePin(phone: string, old_pin: string, new_pin: string): Promise<any> {
-    const response = await api.post<any>('/api/auth/change-pin/', {
+    const response = await api.post<any>(ENDPOINTS.CHANGE_PIN, {
       phone: this.normalizePhoneNumber(phone),
       current_pin: old_pin,
       new_pin,
@@ -237,10 +281,10 @@ class AuthService {
 
   /**
    * Request PIN reset
-   * POST /api/auth/reset-pin/request/
+   * POST /api/users/auth/reset-pin/request/
    */
   async requestPinReset(phone: string): Promise<any> {
-    const response = await api.post<any>('/api/auth/reset-pin/request/', {
+    const response = await api.post<any>(ENDPOINTS.RESET_PIN_REQUEST, {
       phone: this.normalizePhoneNumber(phone),
     });
     return response.data?.data ?? response.data;
@@ -248,10 +292,10 @@ class AuthService {
 
   /**
    * Confirm PIN reset
-   * POST /api/auth/reset-pin/confirm/
+   * POST /api/users/auth/reset-pin/confirm/
    */
   async confirmPinReset(phone: string, otp: string, new_pin: string): Promise<any> {
-    const response = await api.post<any>('/api/auth/reset-pin/confirm/', {
+    const response = await api.post<any>(ENDPOINTS.RESET_PIN_CONFIRM, {
       phone: this.normalizePhoneNumber(phone),
       otp,
       new_pin,

@@ -1,15 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { useAppStore } from '../../store/useAppStore';
+import { getMyJobs } from '../../services/jobsService';
 
 export default function EISScoreScreen() {
   const navigation = useNavigation<any>();
   const score = useAppStore((state) => state.eisScore);
-  const gigsDone = useAppStore((state) => state.jobsFeed.length);
+  const myJobsFromStore = useAppStore((state) => state.myJobs);
+  const setMyJobs = useAppStore((state) => state.setMyJobs);
+  const [gigsDone, setGigsDone] = useState(myJobsFromStore.length);
   const daysActive = 0;
+
+  useEffect(() => {
+    const loadMyJobs = async () => {
+      try {
+        const data = await getMyJobs();
+        const jobs = Array.isArray(data) ? data : (data?.jobs ?? data?.results ?? []);
+        setMyJobs(jobs);
+        const completed = jobs.filter((j: any) => j.status === 'completed').length;
+        setGigsDone(completed || jobs.length);
+      } catch {
+        // fallback to store count
+        setGigsDone(myJobsFromStore.length);
+      }
+    };
+    loadMyJobs();
+  }, []);
 
   let [fontsLoaded] = useFonts({
     Inter_400Regular,

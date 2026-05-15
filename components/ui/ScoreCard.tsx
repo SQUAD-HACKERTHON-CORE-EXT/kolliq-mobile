@@ -14,9 +14,9 @@ interface ScoreCardProps {
 export const ScoreCard: React.FC<ScoreCardProps> = ({
   score,
   maxScore = 100,
-  tier = 'Tier 3: Loans Active',
-  gigsCompleted = 12,
-  ptsToNext = 15,
+  tier,
+  gigsCompleted,
+  ptsToNext,
 }) => {
   const progress = (score / maxScore) * 100;
 
@@ -24,9 +24,11 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
     <Card variant="outline" style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.label}>ECONOMIC IDENTITY SCORE</Text>
-        <View style={styles.tierBadge}>
-          <Text style={styles.tierText}>{tier}</Text>
-        </View>
+        {tier ? (
+          <View style={styles.tierBadge}>
+            <Text style={styles.tierText}>{tier}</Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.scoreRow}>
@@ -41,12 +43,16 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
         </View>
       </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>{gigsCompleted} Gigs Completed</Text>
-        <Text style={[styles.footerText, { color: COLORS.secondary }]}>
-          {ptsToNext} EIS Points to max tier
-        </Text>
-      </View>
+      {(typeof gigsCompleted === 'number' || typeof ptsToNext === 'number') && (
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {typeof gigsCompleted === 'number' ? `${gigsCompleted} Gigs Completed` : ''}
+          </Text>
+          <Text style={[styles.footerText, { color: COLORS.secondary }]}>
+            {typeof ptsToNext === 'number' ? `${ptsToNext} EIS Points to max tier` : ''}
+          </Text>
+        </View>
+      )}
     </Card>
   );
 };

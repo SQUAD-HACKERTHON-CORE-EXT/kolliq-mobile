@@ -1,5 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
@@ -8,256 +16,394 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Card } from '../../components/ui/Card';
 import { WalletCard } from '../../components/ui/WalletCard';
 import { ScoreCard } from '../../components/ui/ScoreCard';
-import { formatCurrency, formatNumber } from '../../utils/formatCurrency';
+import { formatNumber } from '../../utils/formatCurrency';
+import { getWallet, getTransactions } from '../../services/walletService';
+import { checkLoanEligibility } from '../../services/financialService';
 import { getCategories, getListings } from '../../services/marketplaceService';
 import { getErrorMessage } from '../../utils/handleApiError';
+import { useAppStore } from '../../store/useAppStore';
+import apiClient from '../../services/apiClient';
+import { ENDPOINTS } from '../../constants/endpoints';
 
+// ── Unique tab IDs fix (was all 'TraderHome' → duplicate key error) ──────────
 const NAV_TABS = [
-  { id: 'TraderHome', label: 'Home', icon: 'grid-outline', activeIcon: 'grid' },
-  { id: 'TraderHome', label: 'Market', icon: 'cart-outline' },
-  { id: 'TraderHome', label: 'Identity', icon: 'finger-print-outline' },
-  { id: 'TraderHome', label: 'Account', icon: 'person-outline' },
-] as const;
+  { id: 'TraderHome', label: 'Home', icon: 'grid-outline' as const, activeIcon: 'grid' as const },
+  { id: 'TraderMarket', label: 'Market', icon: 'cart-outline' as const, activeIcon: 'cart' as const },
+  { id: 'TraderIdentityTab', label: 'Identity', icon: 'finger-print-outline' as const, activeIcon: 'finger-print' as const },
+  { id: 'TraderAccount', label: 'Account', icon: 'person-outline' as const, activeIcon: 'person' as const },
+];
 
-export default function IdentityScreen({ navigation }: any) {
+const EIS_LOAN_THRESHOLD = 50;
+
+const getEisTier = (score: number) => {
+  if (score >= 100) return 'Platinum';
+  if (score >= 70) return 'Gold Tier';
+  if (score >= 50) return 'Silver Tier';
+  if (score >= 20) return 'Bronze Tier';
+  return 'Starter Tier';
+};
+
+const formatRelativeDate = (isoDate: string) => {
+  try {
+    const date = new Date(isoDate);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / 86400000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    return `${diffDays}d ago`;
+  } catch {
+    return '';
+  }
+};
+
+export default function TraderHomeScreen({ navigation }: any) {
+  const user = useAppStore((s) => s.user);
+  const eisScore = useAppStore((s) => s.eisScore);
+  const loansUnlocked = useAppStore((s) => s.loansUnlocked);
+  const setUser = useAppStore((s) => s.setUser);
+  const setWalletStore = useAppStore((s) => s.setWallet);
+  const setTransactionsStore = useAppStore((s) => s.setTransactions);
+  const wallet = useAppStore((s) => s.wallet);
+  const transactions = useAppStore((s) => s.transactions);
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
-  const [loadingMarket, setLoadingMarket] = useState(true);
-  const [marketError, setMarketError] = useState('');
+  const [loanEligibility, setLoanEligibility] = useState<any>(null);
+  const [error, setError] = useState('');
 
-  const weeklyData = [
-    { label: 'Wk 1', height: 40, color: COLORS.surfaceAlt },
-    { label: 'Wk 2', height: 60, color: COLORS.surfaceAlt },
-    { label: 'Wk 3', height: 85, color: COLORS.primary },
-    { label: 'Wk 4', height: 100, color: COLORS.primary },
-  ];
-
-  useEffect(() => {
-    const loadMarket = async () => {
-      try {
-        setLoadingMarket(true);
-        setMarketError('');
-        const [categoryData, listingData] = await Promise.all([
+  const loadData = useCallback(async () => {
+    try {
+      setError('');
+      const [profileRes, walletRes, txnRes, loanRes, catRes, listRes] =
+        await Promise.allSettled([
+          apiClient.get(ENDPOINTS.PROFILE),
+          getWallet(),
+          getTransactions(),
+          checkLoanEligibility(),
           getCategories(),
           getListings({ page: 1 }),
         ]);
-        setCategories(categoryData);
-        setListings(listingData);
-      } catch (error: any) {
-        setMarketError(getErrorMessage(error, 'Failed to load marketplace data'));
-      } finally {
-        setLoadingMarket(false);
-      }
-    };
 
-    loadMarket();
+      if (profileRes.status === 'fulfilled' && profileRes.value) {
+        const profile = profileRes.value as any;
+        setUser({
+          id: profile.id ?? user?.id ?? '',
+          phone: profile.phone ?? user?.phone ?? '',
+          full_name: profile.full_name ?? user?.full_name ?? '',
+          role: profile.role ?? user?.role ?? 'worker',
+          email: profile.email,
+          location_city: profile.location_city,
+          trade_category: profile.trade_category,
+          market_name: profile.market_name,
+          business_name: profile.business_name,
+          squad_account_number: profile.squad_account_number,
+          squad_bank_name: profile.squad_bank_name,
+          eis_score: profile.eis_score ?? 0,
+        });
+      }
+
+      if (walletRes.status === 'fulfilled' && walletRes.value) {
+        setWalletStore(walletRes.value as any);
+      }
+
+      if (txnRes.status === 'fulfilled' && txnRes.value) {
+        const txnData = txnRes.value as any;
+        const txns = txnData?.transactions ?? (Array.isArray(txnData) ? txnData : []);
+        setTransactionsStore(Array.isArray(txns) ? txns : []);
+      }
+
+      if (loanRes.status === 'fulfilled') {
+        setLoanEligibility(loanRes.value);
+      }
+
+      if (catRes.status === 'fulfilled') {
+        setCategories((catRes.value as any[]) ?? []);
+      }
+
+      if (listRes.status === 'fulfilled') {
+        setListings((listRes.value as any[]) ?? []);
+      }
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Failed to load dashboard data'));
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  const displayName = user?.business_name || user?.full_name || 'Trader';
+  const balanceAmount = wallet ? parseFloat(wallet.balance || '0') : 0;
+  const recentTxns = transactions.slice(0, 3);
+  const loanProgress = Math.min(100, (eisScore / EIS_LOAN_THRESHOLD) * 100);
 
   return (
     <SafeAreaView style={styles.container}>
-      <DashboardHeader 
-        userName="Ike's Workshop" 
-        onNotificationPress={() => {}} 
-        onProfilePress={() => {}}
+      <DashboardHeader
+        userName={displayName}
+        greeting="Welcome back,"
+        onNotificationPress={() => {}}
+        onProfilePress={() => navigation.navigate('TraderAccount')}
       />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerSection}>
-          <Text style={styles.subtitle}>Financial Overview</Text>
-          <Text style={styles.title}>Identity & Progress</Text>
-        </View>
-
-        <WalletCard 
-          title="Available Balance"
-          balance={formatNumber(0)}
-          score={0}
-          primaryActionTitle="Receive"
-          secondaryActionTitle="Transfer"
-          onPrimaryAction={() => {}}
-          onSecondaryAction={() => {}}
-        />
-
-        <View style={styles.quickActionRow}>
-          {['Send', 'Request', 'Scan QR', 'My QR'].map((action, i) => (
-            <TouchableOpacity key={i} style={styles.actionBtnContainer}>
-              <View style={styles.actionBtn}>
-                <Ionicons 
-                  name={i === 0 ? 'send' : i === 1 ? 'download' : i === 2 ? 'qr-code' : 'barcode'} 
-                  size={20} 
-                  color={COLORS.primary} 
-                />
-              </View>
-              <Text style={styles.actionBtnLabel}>{action}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.section}>
-          <ScoreCard 
-            score={0} 
-            tier="Starter Tier"
-            gigsCompleted={0}
-            ptsToNext={100}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
           />
-        </View>
-
-        <View style={styles.loanCard}>
-          <Text style={styles.loanLabel}>Unlock Working Capital Loans</Text>
-          <Text style={styles.loanRequirement}>Process 50000 naira in payments to qualify for your first business loan</Text>
-          <View style={styles.loanProgressRow}>
-            <View style={styles.loanProgressBg}>
-              <View style={[styles.loanProgressFill, { width: '0%' }]} />
-            </View>
+        }
+      >
+        {loading && !refreshing ? (
+          <View style={styles.loadingCenter}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Loading your dashboard…</Text>
           </View>
-          <View style={styles.loanAmounts}>
-            <Text style={styles.loanAmountText}>0</Text>
-            <Text style={styles.loanAmountText}>₦50,000</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <SectionHeader title="Marketplace" onViewAll={() => {}} />
-          {loadingMarket ? (
-            <View style={styles.marketLoadingRow}>
-              <ActivityIndicator size="small" color={COLORS.primary} />
-              <Text style={styles.marketLoadingText}>Loading live listings…</Text>
-            </View>
-          ) : marketError ? (
-            <View style={styles.marketErrorCard}>
-              <Text style={styles.marketErrorText}>{marketError}</Text>
-            </View>
-          ) : null}
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-            {categories.map((category) => (
-              <View key={category.id} style={styles.categoryChip}>
-                <Text style={styles.categoryChipText}>{category.name}</Text>
+        ) : (
+          <>
+            {!!error && (
+              <View style={styles.errorBanner}>
+                <Ionicons name="alert-circle-outline" size={16} color="#B91C1C" />
+                <Text style={styles.errorText}>{error}</Text>
               </View>
-            ))}
-          </ScrollView>
+            )}
 
-          {listings.slice(0, 3).map((listing) => (
-            <Card key={listing.id} variant="outline" style={styles.listingCard}>
-              <Text style={styles.listingTitle}>{listing.title}</Text>
-              <Text style={styles.listingMeta}>{listing.location_city || 'Market listing'} • ₦{formatNumber(listing.price)}</Text>
-              <Text style={styles.listingDesc} numberOfLines={2}>{listing.description}</Text>
-            </Card>
-          ))}
+            <WalletCard
+              title="Available Balance"
+              balance={formatNumber(balanceAmount)}
+              score={eisScore}
+              primaryActionTitle="Add Money"
+              secondaryActionTitle="Transfer"
+              onPrimaryAction={() => navigation.navigate('WalletScreen')}
+              onSecondaryAction={() => navigation.navigate('WalletScreen')}
+            />
 
-          {!loadingMarket && listings.length === 0 && !marketError ? (
-            <View style={styles.emptyMarketState}>
-              <Text style={styles.emptyMarketText}>No live listings yet.</Text>
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.section}>
-          <Card variant="outline" style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <View>
-                <Text style={styles.chartTitle}>Score Growth</Text>
-                <Text style={styles.chartSubtitle}>Past 30 Days</Text>
-              </View>
-              <View style={styles.growthBadge}>
-                <Text style={styles.growthText}>+12 Pts</Text>
-              </View>
-            </View>
-
-            <View style={styles.chartContainer}>
-              <View style={styles.barsContainer}>
-                {weeklyData.map((data, index) => (
-                  <View key={index} style={styles.barWrapper}>
-                    <View style={[styles.bar, { height: `${data.height}%`, backgroundColor: data.color }]} />
-                    <Text style={styles.barLabel}>{data.label}</Text>
+            {/* Quick Actions */}
+            <View style={styles.quickActionRow}>
+              {[
+                { label: 'Wallet', icon: 'wallet-outline' as const, route: 'WalletScreen' },
+                { label: 'Savings', icon: 'save-outline' as const, route: 'SavingsScreen' },
+                { label: 'Loans', icon: 'cash-outline' as const, route: 'LoansScreen' },
+                { label: 'Insurance', icon: 'shield-outline' as const, route: 'InsuranceScreen' },
+              ].map((action) => (
+                <TouchableOpacity
+                  key={action.label}
+                  style={styles.actionBtnContainer}
+                  onPress={() => navigation.navigate(action.route)}
+                >
+                  <View style={styles.actionBtn}>
+                    <Ionicons name={action.icon} size={20} color={COLORS.primary} />
                   </View>
-                ))}
-              </View>
+                  <Text style={styles.actionBtnLabel}>{action.label}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          </Card>
-        </View>
 
-        <View style={styles.section}>
-          <SectionHeader title="Recent Activity" onViewAll={() => {}} />
-          <ActivityItem 
-            title="Trade Payment Received" 
-            desc="From: BuildTech Const." 
-            amount="+ ₦15,000" 
-            date="Today, 2:45 PM" 
-          />
-          <ActivityItem 
-            title="Identity Score Update" 
-            desc="Verification Bonus" 
-            amount="+ 5 Pts" 
-            date="Yesterday" 
-            isScore
-          />
-        </View>
+            {/* EIS Score */}
+            <View style={styles.section}>
+              <ScoreCard
+                score={eisScore}
+                tier={getEisTier(eisScore)}
+                ptsToNext={Math.max(0, 100 - eisScore)}
+              />
+            </View>
+
+            {/* Loan Unlock Card */}
+            <TouchableOpacity
+              style={styles.loanCard}
+              onPress={() => navigation.navigate('LoansScreen')}
+              activeOpacity={0.85}
+            >
+              {loansUnlocked ? (
+                <>
+                  <Text style={styles.loanLabel}>Working Capital Loans Unlocked 🎉</Text>
+                  <Text style={styles.loanRequirement}>
+                    Max eligible: ₦{formatNumber(loanEligibility?.max_amount ?? 0)}
+                    {loanEligibility?.note ? `  •  ${loanEligibility.note}` : ''}
+                  </Text>
+                  <View style={styles.loanProgressBg}>
+                    <View style={[styles.loanProgressFill, { width: '100%' }]} />
+                  </View>
+                  <Text style={[styles.loanAmountText, { color: COLORS.secondary, marginTop: 6 }]}>
+                    Tap to apply →
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.loanLabel}>Unlock Working Capital Loans</Text>
+                  <Text style={styles.loanRequirement}>
+                    Reach EIS Score of {EIS_LOAN_THRESHOLD} to qualify.
+                    {eisScore < EIS_LOAN_THRESHOLD
+                      ? ` You need ${EIS_LOAN_THRESHOLD - eisScore} more points.`
+                      : ''}
+                  </Text>
+                  <View style={styles.loanProgressRow}>
+                    <View style={styles.loanProgressBg}>
+                      <View style={[styles.loanProgressFill, { width: `${loanProgress}%` }]} />
+                    </View>
+                  </View>
+                  <View style={styles.loanAmounts}>
+                    <Text style={styles.loanAmountText}>{eisScore} EIS</Text>
+                    <Text style={styles.loanAmountText}>{EIS_LOAN_THRESHOLD} EIS needed</Text>
+                  </View>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Marketplace Preview */}
+            <View style={styles.section}>
+              <SectionHeader
+                title="Marketplace"
+                onViewAll={() => navigation.navigate('TraderMarket')}
+              />
+              {categories.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoryRow}
+                >
+                  {categories.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={styles.categoryChip}
+                      onPress={() => navigation.navigate('TraderMarket')}
+                    >
+                      <Text style={styles.categoryChipText}>
+                        {cat.icon ? `${cat.icon} ` : ''}{cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+
+              {listings.slice(0, 3).map((listing) => (
+                <Card key={listing.id} variant="outline" style={styles.listingCard}>
+                  <Text style={styles.listingTitle}>{listing.title}</Text>
+                  <Text style={styles.listingMeta}>
+                    {listing.location_city || 'Marketplace'} • ₦{formatNumber(listing.price)}
+                  </Text>
+                  <Text style={styles.listingDesc} numberOfLines={2}>
+                    {listing.description}
+                  </Text>
+                </Card>
+              ))}
+
+              {listings.length === 0 && !loading && (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>No active listings yet.</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Recent Activity */}
+            <View style={styles.section}>
+              <SectionHeader
+                title="Recent Activity"
+                onViewAll={() => navigation.navigate('WalletScreen')}
+              />
+              {recentTxns.length > 0 ? (
+                recentTxns.map((txn: any) => (
+                  <ActivityItem
+                    key={txn.id}
+                    title={
+                      txn.description ||
+                      (txn.transaction_type === 'credit' ? 'Payment Received' : 'Payment Sent')
+                    }
+                    desc={txn.status === 'success' ? 'Completed' : (txn.status || '')}
+                    amount={`${txn.transaction_type === 'credit' ? '+' : '-'} ₦${formatNumber(
+                      parseFloat(txn.amount || '0')
+                    )}`}
+                    date={formatRelativeDate(txn.created_at)}
+                    isCredit={txn.transaction_type === 'credit'}
+                  />
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>No recent transactions.</Text>
+                </View>
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
 
-      <BottomNav 
-        activeTab="TraderHome" 
-        onTabPress={(tab) => navigation.navigate(tab)} 
+      <BottomNav
+        activeTab="TraderHome"
+        onTabPress={(tab) => navigation.navigate(tab)}
         tabs={NAV_TABS as any}
       />
     </SafeAreaView>
   );
 }
 
-const ActivityItem = ({ title, desc, amount, date, isScore }: any) => (
+const ActivityItem = ({ title, desc, amount, date, isCredit }: any) => (
   <TouchableOpacity style={styles.activityRow}>
     <View style={styles.activityIcon}>
-      <Ionicons 
-        name={isScore ? "flash-outline" : "arrow-down-outline"} 
-        size={20} 
-        color={COLORS.primary} 
+      <Ionicons
+        name={isCredit ? 'arrow-down-outline' : 'arrow-up-outline'}
+        size={20}
+        color={isCredit ? COLORS.secondary : '#EF4444'}
       />
     </View>
     <View style={styles.activityInfo}>
       <Text style={styles.activityTitle}>{title}</Text>
-      <Text style={styles.activityDate}>{date} • {desc}</Text>
+      <Text style={styles.activityDate}>
+        {date}
+        {desc ? ` • ${desc}` : ''}
+      </Text>
     </View>
-    <Text style={[styles.activityAmount, { color: isScore ? COLORS.primary : COLORS.secondary }]}>
+    <Text
+      style={[styles.activityAmount, { color: isCredit ? COLORS.secondary : '#EF4444' }]}
+    >
       {amount}
     </Text>
   </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollContent: {
-    paddingHorizontal: LAYOUT.paddingHorizontal,
-    paddingBottom: 100,
-  },
-  headerSection: {
-    marginBottom: SPACING.xl,
+  container: { flex: 1, backgroundColor: COLORS.background },
+  scrollContent: { paddingHorizontal: LAYOUT.paddingHorizontal, paddingBottom: 100 },
+  loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
+  loadingText: {
     marginTop: SPACING.md,
-  },
-  subtitle: {
     fontSize: 14,
     fontFamily: FONTS.family,
     color: COLORS.textMuted,
-    marginBottom: 4,
   },
-  title: {
-    fontSize: 32,
-    fontFamily: FONTS.weights.bold,
-    color: COLORS.text,
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.18)',
+    padding: 12,
+    marginBottom: SPACING.md,
   },
-  section: {
-    marginTop: SPACING.xl,
-  },
+  errorText: { fontSize: 13, fontFamily: FONTS.weights.medium, color: '#B91C1C', flex: 1 },
+  section: { marginTop: SPACING.xl },
   quickActionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: SPACING.xl,
     paddingHorizontal: SPACING.sm,
   },
-  actionBtnContainer: {
-    alignItems: 'center',
-  },
+  actionBtnContainer: { alignItems: 'center' },
   actionBtn: {
     width: 48,
     height: 48,
@@ -267,11 +413,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  actionBtnLabel: {
-    fontSize: 11,
-    fontFamily: FONTS.weights.medium,
-    color: COLORS.text,
-  },
+  actionBtnLabel: { fontSize: 11, fontFamily: FONTS.weights.medium, color: COLORS.text },
   loanCard: {
     backgroundColor: COLORS.white,
     borderRadius: BORDER_RADIUS.xl,
@@ -293,11 +435,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 18,
   },
-  loanProgressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
+  loanProgressRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   loanProgressBg: {
     flex: 1,
     height: 6,
@@ -309,43 +447,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 3,
   },
-  loanAmounts: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  loanAmountText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    fontFamily: FONTS.weights.medium,
-  },
-  marketLoadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: SPACING.md,
-  },
-  marketLoadingText: {
-    fontSize: 13,
-    fontFamily: FONTS.weights.medium,
-    color: COLORS.textMuted,
-  },
-  marketErrorCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.18)',
-  },
-  marketErrorText: {
-    fontSize: 13,
-    fontFamily: FONTS.weights.medium,
-    color: '#B91C1C',
-  },
-  categoryRow: {
-    gap: 8,
-    paddingBottom: 12,
-  },
+  loanAmounts: { flexDirection: 'row', justifyContent: 'space-between' },
+  loanAmountText: { fontSize: 12, color: COLORS.textMuted, fontFamily: FONTS.weights.medium },
+  categoryRow: { gap: 8, paddingBottom: 12 },
   categoryChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -354,15 +458,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  categoryChipText: {
-    fontSize: 12,
-    fontFamily: FONTS.weights.medium,
-    color: COLORS.text,
-  },
-  listingCard: {
-    marginBottom: 10,
-    padding: SPACING.lg,
-  },
+  categoryChipText: { fontSize: 12, fontFamily: FONTS.weights.medium, color: COLORS.text },
+  listingCard: { marginBottom: 10, padding: SPACING.lg },
   listingTitle: {
     fontSize: 15,
     fontFamily: FONTS.weights.bold,
@@ -381,7 +478,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 18,
   },
-  emptyMarketState: {
+  emptyState: {
     backgroundColor: COLORS.white,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
@@ -389,71 +486,8 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     alignItems: 'center',
   },
-  emptyMarketText: {
-    fontSize: 13,
-    fontFamily: FONTS.weights.medium,
-    color: COLORS.textMuted,
-  },
-  chartCard: {
-    padding: SPACING.xl,
-  },
-  chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: SPACING['2xl'],
-  },
-  chartTitle: {
-    fontSize: 16,
-    fontFamily: FONTS.weights.bold,
-    color: COLORS.text,
-  },
-  chartSubtitle: {
-    fontSize: 12,
-    fontFamily: FONTS.family,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  growthBadge: {
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BORDER_RADIUS.md,
-  },
-  growthText: {
-    fontSize: 12,
-    fontFamily: FONTS.weights.bold,
-    color: COLORS.secondary,
-  },
-  chartContainer: {
-    height: 120,
-    justifyContent: 'flex-end',
-  },
-  barsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingHorizontal: SPACING.sm,
-  },
-  barWrapper: {
-    alignItems: 'center',
-    width: 50,
-  },
-  bar: {
-    width: 32,
-    borderRadius: 8,
-  },
-  barLabel: {
-    fontSize: 10,
-    fontFamily: FONTS.family,
-    color: COLORS.textMuted,
-    marginTop: 8,
-  },
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
+  emptyText: { fontSize: 13, fontFamily: FONTS.weights.medium, color: COLORS.textMuted },
+  activityRow: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.lg },
   activityIcon: {
     width: 44,
     height: 44,
@@ -463,24 +497,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: SPACING.md,
   },
-  activityInfo: {
-    flex: 1,
-  },
-  activityTitle: {
-    fontSize: 15,
-    fontFamily: FONTS.weights.bold,
-    color: COLORS.text,
-  },
+  activityInfo: { flex: 1 },
+  activityTitle: { fontSize: 15, fontFamily: FONTS.weights.bold, color: COLORS.text },
   activityDate: {
     fontSize: 12,
     fontFamily: FONTS.family,
     color: COLORS.textMuted,
     marginTop: 2,
   },
-  activityAmount: {
-    fontSize: 15,
-    fontFamily: FONTS.weights.bold,
-  },
+  activityAmount: { fontSize: 15, fontFamily: FONTS.weights.bold },
 });
-
-

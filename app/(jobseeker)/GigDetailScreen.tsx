@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
@@ -7,6 +7,8 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { acceptJob } from '../../services/jobsService';
+import { getErrorMessage } from '../../utils/handleApiError';
 
 export default function GigDetailScreen({ navigation }: any) {
   const route = useRoute<any>();
@@ -14,6 +16,24 @@ export default function GigDetailScreen({ navigation }: any) {
   const payValue = gig.pay_per_worker ?? gig.pay ?? 0;
   const distanceValue = gig.distance_km ?? gig.distance ?? '—';
   const durationValue = gig.duration_hours ?? gig.duration ?? '—';
+  const [accepting, setAccepting] = useState(false);
+
+  const handleAcceptGig = async () => {
+    const jobId = gig.id || gig.job_id;
+    if (!jobId) {
+      Alert.alert('Error', 'Job ID not found. Please try again.');
+      return;
+    }
+    try {
+      setAccepting(true);
+      await acceptJob(jobId);
+      navigation.navigate('AcceptJob', { job: gig });
+    } catch (error) {
+      Alert.alert('Error', getErrorMessage(error, 'Failed to accept job. Please try again.'));
+    } finally {
+      setAccepting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -111,11 +131,12 @@ export default function GigDetailScreen({ navigation }: any) {
           style={styles.secondaryBtn}
         />
         <Button 
-          title="Accept Gig" 
-          onPress={() => navigation.navigate('AcceptJob', { job: gig })} 
+          title={accepting ? 'Accepting…' : 'Accept Gig'}
+          onPress={handleAcceptGig}
           variant="primary"
           size="lg"
           style={styles.primaryBtn}
+          disabled={accepting}
         />
       </View>
     </SafeAreaView>

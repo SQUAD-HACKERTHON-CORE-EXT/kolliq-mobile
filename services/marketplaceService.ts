@@ -19,8 +19,10 @@ const unwrap = (response: any, keys: string[] = []) => {
 
 const normalizeCategory = (category: any) => ({
   id: String(category?.id ?? category?.slug ?? category?.name ?? ''),
-  slug: category?.slug ?? category?.id ?? category?.name,
+  slug: category?.slug ?? String(category?.id) ?? category?.name,
   name: category?.name ?? category?.title ?? 'Category',
+  icon: category?.icon ?? '',
+  listing_count: category?.listing_count,
   description: category?.description,
 })
 

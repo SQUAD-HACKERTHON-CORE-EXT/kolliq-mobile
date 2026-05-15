@@ -357,7 +357,7 @@ export default function WalletScreen({ navigation }: any) {
 }
 
 const TransactionItem = ({ transaction, formatDate, formatTime }: any) => {
-  const isCredit = transaction.type === 'credit';
+  const isCredit = (transaction.transaction_type ?? transaction.type) === 'credit';
   return (
     <View style={txStyles.container}>
       <View style={[txStyles.iconBox, { backgroundColor: isCredit ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }]}>
