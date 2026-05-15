@@ -17,7 +17,8 @@ export default function EISScoreScreen() {
   useEffect(() => {
     const loadMyJobs = async () => {
       try {
-        const data = await getMyJobs();
+        const dataRes = await getMyJobs();
+        const data = dataRes?.data ?? dataRes;
         const jobs = Array.isArray(data) ? data : (data?.jobs ?? data?.results ?? []);
         setMyJobs(jobs);
         const completed = jobs.filter((j: any) => j.status === 'completed').length;

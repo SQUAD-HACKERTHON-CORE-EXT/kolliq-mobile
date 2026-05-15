@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, ToastAndroid, Platform, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { getJobDetail } from '../../services/jobsService';
 
 export default function EscrowInstructionsScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const params = route.params || {};
+  const [instructions, setInstructions] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   let [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -16,7 +19,43 @@ export default function EscrowInstructionsScreen() {
     Inter_700Bold,
   });
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    const loadEscrowInstructions = async () => {
+      try {
+        setLoading(true);
+        
+        // Backend-first: escrow instructions MUST come from job details.
+        // No hardcoded/default fallback values; if escrow data is missing we show error UI.
+        if (params.job_id) {
+          const jobDetail = await getJobDetail(params.job_id);
+          const escrow = jobDetail?.escrow_instructions;
+
+          if (!escrow?.account_number || !escrow?.bank_name) {
+            // escrow not available from backend
+            setInstructions(null);
+            return;
+          }
+
+          setInstructions({
+            accountNumber: escrow.account_number,
+            bank: escrow.bank_name,
+            amount: params.amount
+              ? `₦${parseInt(params.amount as string).toLocaleString()}`
+              : (escrow.amount ? `₦${parseInt(String(escrow.amount)).toLocaleString()}` : '—'),
+            reference: escrow.reference ?? params.reference ?? '',
+          });
+        }
+      } catch (e) {
+        console.log('Error loading escrow instructions:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEscrowInstructions();
+  }, [params.job_id, params.escrow_account, params.bank_name, params.amount, params.reference]);
+
+  if (!fontsLoaded || loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1B4D3E" />
@@ -24,13 +63,21 @@ export default function EscrowInstructionsScreen() {
     );
   }
 
-  // replace with real API call to GET /payments/escrow-instructions using djangoClient
-  const instructions = {
-    accountNumber: params.escrow_account || '—',
-    bank: params.bank_name || '—',
-    amount: params.amount ? `₦${parseInt(params.amount as string).toLocaleString()}` : '—',
-    reference: params.reference || '—',
-  };
+  if (!instructions) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.content}>
+          <Text style={styles.heading}>Unable to load escrow details</Text>
+          <TouchableOpacity 
+            style={styles.primaryButton} 
+            onPress={() => navigation.navigate('EmployerDashboard')}
+          >
+            <Text style={styles.primaryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const handleCopy = async (text: string) => {
     await Clipboard.setStringAsync(text);

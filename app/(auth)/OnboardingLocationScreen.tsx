@@ -62,6 +62,7 @@ const OnboardingLocationScreen = () => {
   const navigation = useNavigation<any>()
   const insets = useSafeAreaInsets()
   const setOnboardingData = useAppStore((state) => state.setOnboardingData)
+  const role = useAppStore((state) => state.onboardingData.role) ?? 'worker'
 
   const isValid = locationArea.trim().length > 0 && selectedCity !== null
 

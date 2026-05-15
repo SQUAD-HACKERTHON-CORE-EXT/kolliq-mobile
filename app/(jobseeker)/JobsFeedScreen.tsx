@@ -125,75 +125,153 @@ export default function JobsFeedScreen({ navigation }: any) {
             )}
           </View>
         ) : (
-          filteredJobs.map((job) => (
-            <TouchableOpacity
-              key={job.id}
-              activeOpacity={0.8}
-              style={styles.jobCard}
-              onPress={() => navigation.navigate('GigDetail', { job })}
-            >
-              {/* Card Header */}
-              <View style={styles.jobCardHeader}>
-                <View style={styles.jobIconBox}>
-                  <Ionicons name="briefcase-outline" size={22} color={COLORS.primary} />
-                </View>
-                <View style={styles.matchBadge}>
-                  <Ionicons name="flash" size={12} color={job.match_score >= 80 ? COLORS.primary : COLORS.accent} />
-                  <Text style={[styles.matchText, job.match_score >= 80 && { color: COLORS.primary }]}>{job.match_score}% Match</Text>
-                </View>
-              </View>
+          filteredJobs.map((job) => {
+            const rawEmployerRating = job.employer_rating ?? 0
+            const safeEmployerRating =
+              typeof rawEmployerRating === 'number'
+                ? rawEmployerRating
+                : typeof rawEmployerRating === 'string'
+                  ? Number(rawEmployerRating)
+                  : rawEmployerRating && typeof rawEmployerRating === 'object'
+                    ? Number(
+                        (rawEmployerRating as any).avg_rating ??
+                        (rawEmployerRating as any).rating ??
+                        0
+                      )
+                    : 0
 
-              {/* Job Title & Employer */}
-              <Text style={styles.jobTitle}>{job.title}</Text>
-              <View style={styles.employerRow}>
-                <Text style={styles.employerName}>{job.employer_name}</Text>
-                <View style={styles.ratingBadge}>
-                  <Ionicons name="star" size={11} color="#F59E0B" />
-                  <Text style={styles.ratingText}>{job.employer_rating}</Text>
-                </View>
-              </View>
+            const rawMatch = job.match_score ?? 0
+            const safeMatch =
+              typeof rawMatch === 'number'
+                ? rawMatch
+                : typeof rawMatch === 'string'
+                  ? Number(rawMatch)
+                  : rawMatch && typeof rawMatch === 'object'
+                    ? Number((rawMatch as any).score ?? (rawMatch as any).match ?? 0)
+                    : 0
 
-              {/* Job Details Row */}
-              <View style={styles.jobDetailsRow}>
-                <View style={styles.jobDetail}>
-                  <Ionicons name="cash-outline" size={14} color={COLORS.primary} />
-                  <Text style={styles.jobDetailText}>{formatCurrency(job.pay_per_worker)}</Text>
-                </View>
-                <View style={styles.jobDetail}>
-                  <Ionicons name="time-outline" size={14} color={COLORS.textSecondary} />
-                  <Text style={styles.jobDetailTextMuted}>{job.duration_hours}hrs</Text>
-                </View>
-                <View style={styles.jobDetail}>
-                  <Ionicons name="location-outline" size={14} color={COLORS.textSecondary} />
-                  <Text style={styles.jobDetailTextMuted}>{job.distance_km}km</Text>
-                </View>
-              </View>
+            const rawPay = job.pay_per_worker ?? job.pay ?? 0
+            const safePay =
+              typeof rawPay === 'number'
+                ? rawPay
+                : typeof rawPay === 'string'
+                  ? Number(rawPay)
+                  : rawPay && typeof rawPay === 'object'
+                    ? Number((rawPay as any).amount ?? (rawPay as any).pay ?? 0)
+                    : 0
 
-              {/* Bottom Row */}
-              <View style={styles.jobCardBottom}>
-                <View style={styles.locationPill}>
-                  <Ionicons name="navigate-outline" size={12} color={COLORS.primary} />
-                  <Text style={styles.locationText}>{job.location_area}</Text>
-                </View>
-                <Text style={styles.ratingText}>{job.employer_rating} rating</Text>
-              </View>
+            const rawDuration = job.duration_hours ?? job.duration ?? 0
+            const safeDuration =
+              typeof rawDuration === 'number'
+                ? rawDuration
+                : typeof rawDuration === 'string'
+                  ? Number(rawDuration)
+                  : rawDuration && typeof rawDuration === 'object'
+                    ? Number((rawDuration as any).duration_hours ?? 0)
+                    : 0
 
-              <View style={styles.breakdownRow}>
-                <View style={styles.breakdownChip}>
-                  <Text style={styles.breakdownLabel}>Location</Text>
-                  <Text style={styles.breakdownValue}>{job.score_breakdown?.location ?? 0}</Text>
+            const rawDistance = job.distance_km ?? job.distance ?? 0
+            const safeDistance =
+              typeof rawDistance === 'number'
+                ? rawDistance
+                : typeof rawDistance === 'string'
+                  ? Number(rawDistance)
+                  : rawDistance && typeof rawDistance === 'object'
+                    ? Number((rawDistance as any).distance_km ?? 0)
+                    : 0
+
+            return (
+              <TouchableOpacity
+                key={job.id}
+                activeOpacity={0.8}
+                style={styles.jobCard}
+                onPress={() => navigation.navigate('GigDetail', { job })}
+              >
+                {/* Card Header */}
+                <View style={styles.jobCardHeader}>
+                  <View style={styles.jobIconBox}>
+                    <Ionicons name="briefcase-outline" size={22} color={COLORS.primary} />
+                  </View>
+                  <View style={styles.matchBadge}>
+                    <Ionicons
+                      name="flash"
+                      size={12}
+                      color={safeMatch >= 80 ? COLORS.primary : COLORS.accent}
+                    />
+                    <Text
+                      style={[
+                        styles.matchText,
+                        safeMatch >= 80 && { color: COLORS.primary },
+                      ]}
+                    >
+                      {safeMatch}% Match
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.breakdownChip}>
-                  <Text style={styles.breakdownLabel}>Skill</Text>
-                  <Text style={styles.breakdownValue}>{job.score_breakdown?.skill ?? 0}</Text>
+
+                {/* Job Title & Employer */}
+                <Text style={styles.jobTitle}>{job.title}</Text>
+                <View style={styles.employerRow}>
+                  <Text style={styles.employerName}>{job.employer_name}</Text>
+                  <View style={styles.ratingBadge}>
+                    <Ionicons name="star" size={11} color="#F59E0B" />
+                    <Text style={styles.ratingText}>
+                      {Number.isFinite(safeEmployerRating) ? safeEmployerRating : 0}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.breakdownChip}>
-                  <Text style={styles.breakdownLabel}>Availability</Text>
-                  <Text style={styles.breakdownValue}>{job.score_breakdown?.availability ?? 0}</Text>
+
+                {/* Job Details Row */}
+                <View style={styles.jobDetailsRow}>
+                  <View style={styles.jobDetail}>
+                    <Ionicons name="cash-outline" size={14} color={COLORS.primary} />
+                    <Text style={styles.jobDetailText}>
+                      {formatCurrency(Number.isFinite(safePay) ? safePay : 0)}
+                    </Text>
+                  </View>
+                  <View style={styles.jobDetail}>
+                    <Ionicons name="time-outline" size={14} color={COLORS.textSecondary} />
+                    <Text style={styles.jobDetailTextMuted}>{safeDuration}hrs</Text>
+                  </View>
+                  <View style={styles.jobDetail}>
+                    <Ionicons
+                      name="location-outline"
+                      size={14}
+                      color={COLORS.textSecondary}
+                    />
+                    <Text style={styles.jobDetailTextMuted}>{safeDistance}km</Text>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))
+
+                {/* Bottom Row */}
+                <View style={styles.jobCardBottom}>
+                  <View style={styles.locationPill}>
+                    <Ionicons name="navigate-outline" size={12} color={COLORS.primary} />
+                    <Text style={styles.locationText}>{job.location_area}</Text>
+                  </View>
+                  <Text style={styles.ratingText}>
+                    {Number.isFinite(safeEmployerRating) ? safeEmployerRating : 0} rating
+                  </Text>
+                </View>
+
+                {/* Breakdown */}
+                <View style={styles.breakdownRow}>
+                  <View style={styles.breakdownChip}>
+                    <Text style={styles.breakdownLabel}>Location</Text>
+                    <Text style={styles.breakdownValue}>{job.score_breakdown?.location ?? 0}</Text>
+                  </View>
+                  <View style={styles.breakdownChip}>
+                    <Text style={styles.breakdownLabel}>Skill</Text>
+                    <Text style={styles.breakdownValue}>{job.score_breakdown?.skill ?? 0}</Text>
+                  </View>
+                  <View style={styles.breakdownChip}>
+                    <Text style={styles.breakdownLabel}>Availability</Text>
+                    <Text style={styles.breakdownValue}>{job.score_breakdown?.availability ?? 0}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )
+          })
         )}
         <View style={{ height: 100 }} />
       </ScrollView>

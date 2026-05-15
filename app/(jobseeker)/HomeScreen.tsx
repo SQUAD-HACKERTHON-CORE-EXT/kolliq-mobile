@@ -139,18 +139,62 @@ export default function HomeScreen({ navigation }: any) {
             title="Jobs Near You"
             onViewAll={() => navigation.navigate('JobsFeed')}
           />
-            {displayJobs.map((job) => (
-            <GigCard
-              key={job.job_id || job.id}
-              title={job.title}
-              employer={job.employer_name || job.employer || 'Employer'}
-              rating={job.employer_rating}
-              pay={formatCurrency(job.pay_per_worker)}
-              match={job.match_score}
-              icon={SKILL_ICON_MAP[job.skill_required] || 'briefcase-outline'}
-              onPress={() => navigation.navigate('GigDetail', { job })}
-            />
-          ))}
+
+          {displayJobs.map((job) => {
+            const rawRating = job.employer_rating ?? 0
+            const safeRating =
+              typeof rawRating === 'number'
+                ? rawRating
+                : typeof rawRating === 'string'
+                  ? Number(rawRating)
+                  : rawRating && typeof rawRating === 'object'
+                    ? Number((rawRating as any).avg_rating ?? (rawRating as any).rating ?? 0)
+                    : 0
+
+            const rawEmployer = job.employer_name ?? job.employer ?? 'Employer'
+            const safeEmployer =
+              typeof rawEmployer === 'string'
+                ? rawEmployer
+                : rawEmployer && typeof rawEmployer === 'object'
+                  ? (rawEmployer as any).business_name ||
+                    (rawEmployer as any).full_name ||
+                    (rawEmployer as any).phone ||
+                    'Employer'
+                  : String(rawEmployer)
+
+            const rawPay = job.pay_per_worker ?? job.pay ?? job.amount ?? 0
+            const safePay =
+              typeof rawPay === 'number'
+                ? rawPay
+                : typeof rawPay === 'string'
+                  ? Number(rawPay)
+                  : rawPay && typeof rawPay === 'object'
+                    ? Number((rawPay as any).amount ?? (rawPay as any).pay ?? 0)
+                    : 0
+
+            const rawMatch = job.match_score ?? job.matchScore ?? 0
+            const safeMatch =
+              typeof rawMatch === 'number'
+                ? rawMatch
+                : typeof rawMatch === 'string'
+                  ? Number(rawMatch)
+                  : rawMatch && typeof rawMatch === 'object'
+                    ? Number((rawMatch as any).score ?? (rawMatch as any).match ?? 0)
+                    : 0
+
+            return (
+              <GigCard
+                key={job.job_id || job.id}
+                title={typeof job.title === 'string' ? job.title : String(job.title ?? '')}
+                employer={safeEmployer}
+                rating={Number.isFinite(safeRating) ? safeRating : 0}
+                pay={formatCurrency(Number.isFinite(safePay) ? safePay : 0)}
+                match={Number.isFinite(safeMatch) ? safeMatch : 0}
+                icon={SKILL_ICON_MAP[job.skill_required] || 'briefcase-outline'}
+                onPress={() => navigation.navigate('GigDetail', { job })}
+              />
+            )
+          })}
         </View>
 
         {/* Bottom spacing for nav */}

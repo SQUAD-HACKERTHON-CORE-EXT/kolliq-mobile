@@ -38,6 +38,10 @@ const normalizeJob = (job: any) => ({
     availability: toNumber(job?.score_breakdown?.availability ?? job?.score_breakdown?.availability_score ?? 0),
   },
   escrow_funded: Boolean(job?.escrow_funded ?? job?.is_escrow_funded ?? false),
+
+  // Backend OAS includes escrow instructions for employer flows.
+  // Keep as-is (shape can include account_number, bank_name, reference, amount, etc.).
+  escrow_instructions: job?.escrow_instructions,
 })
 
 const unwrapJobs = (response: any) => {
@@ -89,7 +93,17 @@ export const createJob = async (data: {
   start_date?: string
   availability?: string
 }) => {
-  const response = await apiClient.post(ENDPOINTS.CREATE_JOB, data)
+  // Backend expects `skill_required` (OAS), but frontend currently sends `required_skills`.
+  const payload: Record<string, unknown> = {
+    ...data,
+  }
+
+  if (data.required_skills) {
+    payload.skill_required = data.required_skills
+    delete payload.required_skills
+  }
+
+  const response = await apiClient.post(ENDPOINTS.CREATE_JOB, payload)
   return response
 }
 

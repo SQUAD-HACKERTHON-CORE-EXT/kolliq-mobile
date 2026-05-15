@@ -16,18 +16,26 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(async (config) => {
   try {
     const token = await SecureStore.getItemAsync('access_token');
+
+    // Ensure headers object exists so Authorization is never skipped
+    config.headers = (config.headers ?? {}) as any;
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('📤 API - Request with token:', config.url)
+      console.log('📤 API - Request with token:', config.url);
     } else {
-      console.log('📤 API - Request without token:', config.url)
+      console.log('📤 API - Request without token:', config.url);
     }
+
     // Log login payload with masked PIN for debugging
     try {
-      const data = typeof config.data === 'string' ? JSON.parse(config.data) : config.data
+      const data = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
       if (config.url === ENDPOINTS.LOGIN && data) {
-        const masked = { ...data, pin: data.pin ? `****(${String(data.pin).length})` : undefined }
-        console.log('📤 API - Login payload:', masked)
+        const masked = {
+          ...data,
+          pin: data.pin ? `****(${String(data.pin).length})` : undefined,
+        };
+        console.log('📤 API - Login payload:', masked);
       }
     } catch (e) {
       // ignore JSON parse errors
@@ -38,7 +46,16 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Response Interceptor: Handle Errors (e.g., 401 Unauthorized)
+/**
+ * Response Interceptor:
+ * - Keep logging
+ * - Do NOT clear tokens on 401.
+ *
+ * Rationale: Clearing tokens here can break authenticated calls made via apiClient
+ * (e.g., employer profile/workers screens) when this generic axios instance
+ * encounters a transient 401.
+ * Logout/token clearing is handled explicitly by services/authService.ts logout().
+ */
 api.interceptors.response.use(
   (response) => {
     console.log('📥 API - Response success:', response.status, response.config.url)
@@ -46,17 +63,11 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('📥 API - Response error:', error.response?.status, error.response?.config?.url)
-    if (error.response?.status === 401) {
-      // Handle logout or token refresh logic here
-      console.warn('Unauthorized! Logging out...');
-      SecureStore.deleteItemAsync('access_token');
-      SecureStore.deleteItemAsync('refresh_token');
-    }
-    
+
     // Normalize error message
-    const message = extractApiErrorMessage(error, 'An unexpected error occurred');
+    const message = extractApiErrorMessage(error, 'An unexpected error occurred')
     console.error('📥 API - Error message:', message)
-    return Promise.reject(new Error(message));
+    return Promise.reject(new Error(message))
   }
 );
 

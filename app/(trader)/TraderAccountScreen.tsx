@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -16,6 +16,8 @@ import { Card } from '../../components/ui/Card';
 import { formatNumber } from '../../utils/formatCurrency';
 import { useAppStore } from '../../store/useAppStore';
 import { authService } from '../../services/auth';
+import apiClient from '../../services/apiClient';
+import { ENDPOINTS } from '../../constants/endpoints';
 
 const NAV_TABS = [
   { id: 'TraderHome', label: 'Home', icon: 'grid-outline' as const, activeIcon: 'grid' as const },
@@ -49,7 +51,50 @@ export default function TraderAccountScreen({ navigation }: any) {
   const user = useAppStore((s) => s.user);
   const wallet = useAppStore((s) => s.wallet);
   const eisScore = useAppStore((s) => s.eisScore);
+  const setUser = useAppStore((s) => s.setUser);
+
   const [loggingOut, setLoggingOut] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      try {
+        const res = await apiClient.get(ENDPOINTS.PROFILE);
+        if (!isMounted) return;
+
+        const p = res as any;
+
+        // Update store so EIS score + unlock flags come from backend
+        setUser({
+          id: p.id ?? user?.id ?? '',
+          phone: p.phone ?? user?.phone ?? '',
+          full_name: p.full_name ?? user?.full_name ?? '',
+          role: p.role ?? user?.role ?? 'trader',
+          email: p.email,
+          location_city: p.location_city,
+          trade_category: p.trade_category,
+          market_name: p.market_name,
+          business_name: p.business_name,
+          squad_account_number: p.squad_account_number,
+          squad_bank_name: p.squad_bank_name,
+          eis_score: p.eis_score ?? 0,
+        });
+      } catch (e) {
+        // Keep UI stable; identity screen will still work.
+        console.log('TraderAccountScreen profile load error:', e);
+      } finally {
+        if (isMounted) setLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const displayName = user?.business_name || user?.full_name || 'Trader';
   const initials = displayName
@@ -60,7 +105,7 @@ export default function TraderAccountScreen({ navigation }: any) {
     .toUpperCase();
 
   const tradeCategories = Array.isArray(user?.trade_category)
-    ? (user.trade_category as string[]).join(', ')
+    ? (user?.trade_category as string[]).join(', ')
     : user?.trade_category || '—';
 
   const handleLogout = () => {
@@ -88,153 +133,140 @@ export default function TraderAccountScreen({ navigation }: any) {
         <Text style={styles.headerTitle}>Account</Text>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Profile Header */}
-        <Card variant="outline" style={styles.profileCard}>
-          <View style={styles.avatarRow}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{user?.full_name || '—'}</Text>
-              {user?.business_name ? (
-                <Text style={styles.profileBusiness}>{user.business_name}</Text>
-              ) : null}
-              <Text style={styles.profilePhone}>{user?.phone || '—'}</Text>
-            </View>
-            <View style={styles.eisBadge}>
-              <Text style={styles.eisScore}>{eisScore}</Text>
-              <Text style={styles.eisLabel}>EIS</Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* Business Info */}
-        <Text style={styles.sectionLabel}>Business Details</Text>
-        <Card variant="outline" style={styles.infoCard}>
-          {[
-            {
-              label: 'Trade Category',
-              value: tradeCategories,
-              icon: 'storefront-outline' as const,
-            },
-            {
-              label: 'Market Name',
-              value: user?.market_name || '—',
-              icon: 'location-outline' as const,
-            },
-            {
-              label: 'City',
-              value: user?.location_city || '—',
-              icon: 'map-outline' as const,
-            },
-          ].map((item, idx, arr) => (
-            <View
-              key={item.label}
-              style={[styles.infoRow, idx < arr.length - 1 && styles.infoRowBorder]}
-            >
-              <Ionicons name={item.icon} size={16} color={COLORS.textMuted} />
-              <View style={styles.infoBody}>
-                <Text style={styles.infoLabel}>{item.label}</Text>
-                <Text style={styles.infoValue}>{item.value}</Text>
+      {loadingProfile ? (
+        <View style={styles.loadingCenter}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* Profile Header */}
+          <Card variant="outline" style={styles.profileCard}>
+            <View style={styles.avatarRow}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>{user?.full_name || '—'}</Text>
+                {user?.business_name ? (
+                  <Text style={styles.profileBusiness}>{user.business_name}</Text>
+                ) : null}
+                <Text style={styles.profilePhone}>{user?.phone || '—'}</Text>
+              </View>
+              <View style={styles.eisBadge}>
+                <Text style={styles.eisScore}>{eisScore}</Text>
+                <Text style={styles.eisLabel}>EIS</Text>
               </View>
             </View>
-          ))}
-        </Card>
+          </Card>
 
-        {/* Wallet Details */}
-        {wallet && (
-          <>
-            <Text style={styles.sectionLabel}>Wallet</Text>
-            <Card variant="outline" style={styles.infoCard}>
-              <View style={styles.infoRow}>
-                <Ionicons name="wallet-outline" size={16} color={COLORS.textMuted} />
+          {/* Business Info */}
+          <Text style={styles.sectionLabel}>Business Details</Text>
+          <Card variant="outline" style={styles.infoCard}>
+            {[
+              {
+                label: 'Trade Category',
+                value: tradeCategories,
+                icon: 'storefront-outline' as const,
+              },
+              {
+                label: 'Market Name',
+                value: user?.market_name || '—',
+                icon: 'location-outline' as const,
+              },
+              {
+                label: 'City',
+                value: user?.location_city || '—',
+                icon: 'map-outline' as const,
+              },
+            ].map((item, idx, arr) => (
+              <View
+                key={item.label}
+                style={[styles.infoRow, idx < arr.length - 1 && styles.infoRowBorder]}
+              >
+                <Ionicons name={item.icon} size={16} color={COLORS.textMuted} />
                 <View style={styles.infoBody}>
-                  <Text style={styles.infoLabel}>Account Number</Text>
-                  <Text style={styles.infoValue}>
-                    {wallet.account_number || user?.squad_account_number || '—'}
-                  </Text>
+                  <Text style={styles.infoLabel}>{item.label}</Text>
+                  <Text style={styles.infoValue}>{item.value}</Text>
                 </View>
               </View>
-              <View style={[styles.infoRow, styles.infoRowBorder]}>
-                <Ionicons name="business-outline" size={16} color={COLORS.textMuted} />
-                <View style={styles.infoBody}>
-                  <Text style={styles.infoLabel}>Bank</Text>
-                  <Text style={styles.infoValue}>
-                    {wallet.bank_name || user?.squad_bank_name || '—'}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons name="cash-outline" size={16} color={COLORS.textMuted} />
-                <View style={styles.infoBody}>
-                  <Text style={styles.infoLabel}>Balance</Text>
-                  <Text style={[styles.infoValue, { color: COLORS.primary }]}>
-                    ₦{formatNumber(parseFloat(wallet.balance || '0'))}
-                  </Text>
-                </View>
-              </View>
-            </Card>
-          </>
-        )}
+            ))}
+          </Card>
 
-        {/* Settings */}
-        <Text style={styles.sectionLabel}>Settings</Text>
-        <Card variant="outline" style={styles.menuCard}>
-          <MenuItem
-            icon="finger-print-outline"
-            label="Change PIN"
-            onPress={() => navigation.navigate('ChangePin')}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="trending-up-outline"
-            label="EIS Score Details"
-            value={`Score: ${eisScore}`}
-            onPress={() => navigation.navigate('EISScoreScreen')}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="save-outline"
-            label="Savings"
-            onPress={() => navigation.navigate('SavingsScreen')}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="cash-outline"
-            label="Loans"
-            onPress={() => navigation.navigate('LoansScreen')}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="shield-outline"
-            label="Insurance"
-            onPress={() => navigation.navigate('InsuranceScreen')}
-          />
-        </Card>
-
-        {/* Logout */}
-        <TouchableOpacity
-          style={styles.logoutBtn}
-          onPress={handleLogout}
-          disabled={loggingOut}
-          activeOpacity={0.8}
-        >
-          {loggingOut ? (
-            <ActivityIndicator size="small" color="#EF4444" />
-          ) : (
+          {/* Wallet Details */}
+          {wallet && (
             <>
-              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-              <Text style={styles.logoutText}>Log Out</Text>
+              <Text style={styles.sectionLabel}>Wallet</Text>
+              <Card variant="outline" style={styles.infoCard}>
+                <View style={styles.infoRow}>
+                  <Ionicons name="wallet-outline" size={16} color={COLORS.textMuted} />
+                  <View style={styles.infoBody}>
+                    <Text style={styles.infoLabel}>Account Number</Text>
+                    <Text style={styles.infoValue}>
+                      {wallet.account_number || user?.squad_account_number || '—'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={[styles.infoRow, styles.infoRowBorder]}>
+                  <Ionicons name="business-outline" size={16} color={COLORS.textMuted} />
+                  <View style={styles.infoBody}>
+                    <Text style={styles.infoLabel}>Bank</Text>
+                    <Text style={styles.infoValue}>
+                      {wallet.bank_name || user?.squad_bank_name || '—'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="cash-outline" size={16} color={COLORS.textMuted} />
+                  <View style={styles.infoBody}>
+                    <Text style={styles.infoLabel}>Balance</Text>
+                    <Text style={[styles.infoValue, { color: COLORS.primary }]}>
+                      ₦{formatNumber(parseFloat(wallet.balance || '0'))}
+                    </Text>
+                  </View>
+                </View>
+              </Card>
             </>
           )}
-        </TouchableOpacity>
 
-        <Text style={styles.version}>Kolliq v1.0.0</Text>
-      </ScrollView>
+          {/* Settings */}
+          <Text style={styles.sectionLabel}>Settings</Text>
+          <Card variant="outline" style={styles.menuCard}>
+            <MenuItem icon="finger-print-outline" label="Change PIN" onPress={() => navigation.navigate('ChangePin')} />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="trending-up-outline"
+              label="EIS Score Details"
+              value={`Score: ${eisScore}`}
+              onPress={() => navigation.navigate('EISScoreScreen')}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem icon="save-outline" label="Savings" onPress={() => navigation.navigate('SavingsScreen')} />
+            <View style={styles.menuDivider} />
+            <MenuItem icon="cash-outline" label="Loans" onPress={() => navigation.navigate('LoansScreen')} />
+            <View style={styles.menuDivider} />
+            <MenuItem icon="shield-outline" label="Insurance" onPress={() => navigation.navigate('InsuranceScreen')} />
+          </Card>
+
+          {/* Logout */}
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={handleLogout}
+            disabled={loggingOut}
+            activeOpacity={0.8}
+          >
+            {loggingOut ? (
+              <ActivityIndicator size="small" color="#EF4444" />
+            ) : (
+              <>
+                <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                <Text style={styles.logoutText}>Log Out</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <Text style={styles.version}>Kolliq v1.0.0</Text>
+        </ScrollView>
+      )}
 
       <BottomNav
         activeTab="TraderAccount"
@@ -253,6 +285,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 24, fontFamily: FONTS.weights.bold, color: COLORS.text },
   scrollContent: { paddingHorizontal: LAYOUT.paddingHorizontal, paddingBottom: 120 },
+  loadingCenter: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   profileCard: { padding: SPACING.xl, marginBottom: SPACING.xl },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.lg },
   avatar: {

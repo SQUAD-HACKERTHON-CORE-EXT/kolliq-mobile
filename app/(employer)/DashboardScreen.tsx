@@ -79,11 +79,11 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.section}>
           <WalletCard 
             title="Escrow Wallet Balance"
-            balance={loadingWallet ? '—' : formatNumber(wallet?.balance ?? 0)}
+            balance={loadingWallet ? '—' : (wallet?.balance ? `₦${formatNumber(wallet.balance)}` : '₦0')}
             primaryActionTitle="+ Fund Escrow"
             secondaryActionTitle="History"
-            onPrimaryAction={() => {}}
-            onSecondaryAction={() => {}}
+            onPrimaryAction={() => navigation.navigate('WalletScreen')}
+            onSecondaryAction={() => navigation.navigate('WalletScreen')}
           >
             <Text style={styles.escrowDisclaimer}>
               Funds held securely in Squad escrow until job is confirmed complete
@@ -101,25 +101,24 @@ export default function DashboardScreen({ navigation }: any) {
           ) : jobs.length === 0 ? (
             <Text style={{ color: COLORS.textSecondary }}>No active postings</Text>
           ) : (
-            jobs.map((job: any) => (
-              <JobPostingCard 
-                key={job.id}
-                title={job.title}
-                posted={`Posted ${job.createdAt ?? ''}`}
-                applicants={job.workers_needed ?? 0}
-                onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
-              />
-            ))
+            jobs.map((job: any) => {
+              const createdDate = job.created_at ? new Date(job.created_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'Recently'
+              return (
+                <JobPostingCard 
+                  key={job.id ?? job.job_id}
+                  title={job.title}
+                  posted={`Posted on ${createdDate}`}
+                  workersNeeded={job.workers_needed ?? 0}
+                  payPerWorker={job.pay_per_worker ?? 0}
+                  status={job.status ?? 'active'}
+                  onPress={() => navigation.navigate('JobDetail', { jobId: job.id ?? job.job_id })}
+                />
+              )
+            })
           )}
         </View>
 
-        <View style={styles.section}>
-          <SectionHeader 
-            title="Top Rated Workers in your area" 
-            onViewAll={() => {}} 
-          />
-          <Text style={{ color: COLORS.textSecondary }}>Top workers coming soon.</Text>
-        </View>
+
       </ScrollView>
 
       <BottomNav 
@@ -131,39 +130,22 @@ export default function DashboardScreen({ navigation }: any) {
   )
 }
 
-const JobPostingCard = ({ title, posted, applicants, onPress }: any) => (
+const JobPostingCard = ({ title, posted, workersNeeded, payPerWorker, status, onPress }: any) => (
   <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
     <Card variant="outline" style={styles.jobCard}>
-      <View style={styles.jobIconPlaceholder} />
+      <View style={[styles.jobIconPlaceholder, status === 'completed' ? { backgroundColor: '#E0F2FE' } : {}]} />
       <View style={styles.jobTextContainer}>
         <Text style={styles.jobTitle}>{title}</Text>
-        <Text style={styles.jobSubtitle}>{posted} • {applicants} Applicants</Text>
+        <Text style={styles.jobSubtitle}>{posted} • {workersNeeded} worker{workersNeeded !== 1 ? 's' : ''} needed</Text>
+        {payPerWorker > 0 && (
+          <Text style={styles.jobPayRate}>₦{formatNumber(payPerWorker)} per worker</Text>
+        )}
       </View>
     </Card>
   </TouchableOpacity>
 );
 
-const RecentHireCard = ({ name, rating, role, amount, status }: any) => (
-  <Card variant="outline" style={styles.hireCard}>
-    <View style={styles.hireTop}>
-      <View style={styles.hireInfo}>
-        <View style={styles.hireAvatar} />
-        <View style={styles.hireMeta}>
-          <Text style={styles.hireName}>{name}</Text>
-          <Text style={styles.hireSub}>{rating} Worker Rating</Text>
-        </View>
-      </View>
-      <View style={styles.hireBadge}>
-        <Text style={styles.hireText}>Hire</Text>
-      </View>
-    </View>
-    <View style={styles.hireDivider} />
-    <View style={styles.hireBottom}>
-      <Text style={styles.hireBottomText}>{role}</Text>
-      <Text style={styles.hireBottomText}>EIS Score: <Text style={styles.boldText}>450</Text></Text>
-    </View>
-  </Card>
-);
+
 
 const styles = StyleSheet.create({
   container: {
@@ -232,50 +214,13 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
-  hireCard: {
-    marginBottom: SPACING.md,
-    padding: SPACING.lg,
-  },
-  hireTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  hireInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  hireAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.surfaceAlt,
-    marginRight: SPACING.md,
-  },
-  hireMeta: {
-    justifyContent: 'center',
-  },
-  hireName: {
-    fontSize: 16,
-    fontFamily: FONTS.weights.bold,
-    color: COLORS.text,
-  },
-  hireSub: {
-    fontSize: 12,
-    fontFamily: FONTS.family,
-    color: COLORS.textSecondary,
-  },
-  hireBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.primary,
-  },
-  hireText: {
+  jobPayRate: {
     fontSize: 12,
     fontFamily: FONTS.weights.bold,
-    color: COLORS.white,
+    color: COLORS.primary,
+    marginTop: 4,
   },
+
   escrowDisclaimer: {
     fontSize: 11,
     fontFamily: FONTS.weights.regular,

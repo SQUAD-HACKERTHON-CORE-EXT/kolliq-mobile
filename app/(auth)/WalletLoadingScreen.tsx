@@ -43,12 +43,13 @@ const WalletLoadingScreen = () => {
 
   const handleDashboard = () => {
     setAuthenticated(true);
-    if (user?.role === 'worker') {
-      navigation.replace('Home');
-    } else if (user?.role === 'trader') {
-      navigation.replace('TraderHome');
+    const role = (user as any)?.role
+    if (role === 'worker') {
+      navigation.replace('Home')
+    } else if (role === 'trader') {
+      navigation.replace('TraderHome')
     } else {
-      navigation.replace('EmployerDashboard');
+      navigation.replace('EmployerDashboard')
     }
   };
 

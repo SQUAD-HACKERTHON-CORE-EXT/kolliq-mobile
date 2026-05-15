@@ -123,6 +123,7 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer>
         <Stack.Navigator
+          id="root"
           initialRouteName={initialRoute}
           screenOptions={{
             headerShown: false,

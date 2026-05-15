@@ -11,41 +11,60 @@ const apiClient = axios.create({
   },
 })
 
-// Request Interceptor
+/**
+ * IMPORTANT DEBUG NOTE:
+ * Some employer screens still hit 401 even when the app appears logged in.
+ * We add safe debug logs to confirm whether:
+ *  - apiClient interceptor runs
+ *  - SecureStore has access_token at request-time
+ *  - Authorization header is being set
+ *
+ * Also: avoid deleting tokens inside apiClient on 401 while debugging,
+ * because it can cause a cascade (first 401 clears token, then other calls fail).
+ */
+
 apiClient.interceptors.request.use(
   async (config: any) => {
     try {
       const token = await SecureStore.getItemAsync('access_token')
+      const url = config?.url ?? '(unknown-url)'
+
+      // Debug: token existence only (don’t log the token)
+      console.log('apiClient request:', {
+        url,
+        hasToken: Boolean(token),
+        tokenLength: token ? String(token).length : 0,
+      })
+
       if (token) {
+        config.headers = config.headers ?? {}
         config.headers.Authorization = `Bearer ${token}`
       }
     } catch (error) {
-      console.error('Token read error:', error)
+      console.error('apiClient Token read error:', error)
     }
     return config
   },
   (error) => Promise.reject(error)
 )
 
-// Response Interceptor
 apiClient.interceptors.response.use(
   (response) => {
     if (response.data && response.data.success === false) {
       return Promise.reject(new Error(extractApiErrorMessage(response.data)))
     }
-
     return response.data?.data ?? response.data
   },
   async (error) => {
-    if (error.response?.status === 401) {
-      try {
-        await SecureStore.deleteItemAsync('access_token')
-        await SecureStore.deleteItemAsync('refresh_token')
-      } catch (e) {
-        console.error('Token clear error:', e)
-      }
-    }
+    const status = error?.response?.status
+    const url = error?.config?.url ?? '(unknown-url)'
 
+    console.log('apiClient response error:', {
+      url,
+      status,
+    })
+
+    // During this fix, do NOT clear tokens here; logout flow handles it explicitly.
     return Promise.reject(
       new Error(extractApiErrorMessage(error, 'Network error. Please check your connection.'))
     )

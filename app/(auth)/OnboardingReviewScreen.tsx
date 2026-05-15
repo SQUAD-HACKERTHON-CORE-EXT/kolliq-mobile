@@ -22,7 +22,7 @@ const OnboardingReviewScreen = () => {
   const [loading, setLoading] = useState(false)
   const navigation = useNavigation<any>()
   const insets = useSafeAreaInsets()
-  const onboardingData = useAppStore((state) => state.onboardingData)
+  const onboardingData = useAppStore((state) => state.onboardingData as any)
 
   const handleRegister = async () => {
     setLoading(true)
@@ -87,8 +87,8 @@ const OnboardingReviewScreen = () => {
 
       const response = await authService.register(registrationData)
       
-      // Extract tokens and user from response
-      const { tokens, user } = response
+      // Extract tokens and user from response (backend may return different shapes)
+      const { tokens, user } = response as any
       
       // Store user role in SecureStore for auth check
       await SecureStore.setItemAsync('role', String(user.role))

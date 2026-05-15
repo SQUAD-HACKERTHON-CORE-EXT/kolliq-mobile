@@ -40,7 +40,9 @@ export default function JobseekerProfile({ navigation }: any) {
   const loadProfileData = async () => {
     try {
       setDataLoading(true);
-      const profileData = await getProfile();
+      const profileRes = await getProfile();
+      const profileData = profileRes?.data ?? profileRes;
+
       if (profileData) setUser(profileData);
 
       const userId = profileData?.id || storeUser?.id;
