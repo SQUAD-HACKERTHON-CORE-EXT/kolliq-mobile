@@ -45,9 +45,25 @@ export default function JobDetailScreen() {
           </View>
           <Text style={styles.title}>{job.title || 'Job detail'}</Text>
           <View style={styles.employerRow}>
-            <Text style={styles.employerText}>{job.employer_name || job.employer || 'Employer'}</Text>
+            <Text style={styles.employerText}>
+              {typeof job.employer_name === 'string'
+                ? job.employer_name
+                : (job.employer_name as any)?.business_name ||
+                  (job.employer_name as any)?.full_name ||
+                  (typeof job.employer === 'string'
+                    ? job.employer
+                    : (job.employer as any)?.business_name || (job.employer as any)?.full_name || 'Employer')}
+            </Text>
             <Ionicons name="star" size={14} color="#F4721E" style={{ marginLeft: 4, marginRight: 2 }} />
-            <Text style={styles.employerText}>{job.employer_rating || job.rating || '—'}</Text>
+            <Text style={styles.employerText}>
+              {typeof (job.employer_rating || job.rating) === 'number'
+                ? job.employer_rating || job.rating
+                : (job.employer_rating as any)?.avg_rating ||
+                  (job.employer_rating as any)?.rating ||
+                  (job.rating as any)?.avg_rating ||
+                  (job.rating as any)?.rating ||
+                  '—'}
+            </Text>
           </View>
 
           <View style={styles.badge}>

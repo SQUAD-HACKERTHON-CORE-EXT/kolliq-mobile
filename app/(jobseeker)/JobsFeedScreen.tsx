@@ -212,7 +212,13 @@ export default function JobsFeedScreen({ navigation }: any) {
                 {/* Job Title & Employer */}
                 <Text style={styles.jobTitle}>{job.title}</Text>
                 <View style={styles.employerRow}>
-                  <Text style={styles.employerName}>{job.employer_name}</Text>
+                  <Text style={styles.employerName}>
+                    {typeof job.employer_name === 'string'
+                      ? job.employer_name
+                      : (job.employer_name as any)?.business_name ||
+                        (job.employer_name as any)?.full_name ||
+                        'Employer'}
+                  </Text>
                   <View style={styles.ratingBadge}>
                     <Ionicons name="star" size={11} color="#F59E0B" />
                     <Text style={styles.ratingText}>

@@ -48,7 +48,11 @@ export default function AcceptJobScreen() {
           <View style={styles.divider} />
           <View style={styles.row}>
             <Text style={styles.label}>Employer</Text>
-            <Text style={styles.value}>{job.employer || 'Employer'}</Text>
+            <Text style={styles.value}>
+              {typeof job.employer === 'string'
+                ? job.employer
+                : (job.employer as any)?.business_name || (job.employer as any)?.full_name || 'Employer'}
+            </Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>

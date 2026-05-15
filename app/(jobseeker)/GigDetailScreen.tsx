@@ -61,10 +61,26 @@ export default function GigDetailScreen({ navigation }: any) {
         <View style={styles.titleSection}>
           <Text style={styles.title}>{gig.title}</Text>
           <View style={styles.employerRow}>
-            <Text style={styles.employer}>{gig.employer_name || gig.employer || 'Employer'}</Text>
+            <Text style={styles.employer}>
+              {typeof gig.employer_name === 'string'
+                ? gig.employer_name
+                : (gig.employer_name as any)?.business_name ||
+                  (gig.employer_name as any)?.full_name ||
+                  (typeof gig.employer === 'string'
+                    ? gig.employer
+                    : (gig.employer as any)?.business_name || (gig.employer as any)?.full_name || 'Employer')}
+            </Text>
             <View style={styles.dot} />
             <Ionicons name="star" size={14} color={COLORS.warning} />
-            <Text style={styles.ratingText}>{gig.employer_rating || gig.rating || 0}</Text>
+            <Text style={styles.ratingText}>
+              {typeof (gig.employer_rating || gig.rating) === 'number'
+                ? gig.employer_rating || gig.rating
+                : (gig.employer_rating as any)?.avg_rating ||
+                  (gig.employer_rating as any)?.rating ||
+                  (gig.rating as any)?.avg_rating ||
+                  (gig.rating as any)?.rating ||
+                  '0'}
+            </Text>
           </View>
         </View>
 

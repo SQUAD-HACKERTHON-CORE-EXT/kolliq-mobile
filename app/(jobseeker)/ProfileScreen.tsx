@@ -166,7 +166,15 @@ export default function JobseekerProfile({ navigation }: any) {
             reviews.slice(0, 5).map((review: any, i: number) => (
               <Card key={review.id || i} variant="outline" style={styles.reviewCard}>
                 <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewEmployer}>{review.from_name || review.reviewer_name || review.employer_name || 'Employer'}</Text>
+                  <Text style={styles.reviewEmployer}>
+                    {typeof (review.from_name || review.reviewer_name || review.employer_name) === 'string'
+                      ? review.from_name || review.reviewer_name || review.employer_name
+                      : (review.from_name as any)?.full_name ||
+                        (review.reviewer_name as any)?.full_name ||
+                        (review.employer_name as any)?.business_name ||
+                        (review.employer_name as any)?.full_name ||
+                        'Employer'}
+                  </Text>
                   <View style={styles.ratingBox}>
                     <Ionicons name="star" size={12} color="#F59E0B" />
                     <Text style={styles.ratingText}>{review.stars ?? review.rating ?? 0}</Text>

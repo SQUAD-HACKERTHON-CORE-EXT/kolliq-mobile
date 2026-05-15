@@ -2,6 +2,8 @@ import api from './api';
 import * as SecureStore from 'expo-secure-store';
 import { useAppStore } from '../store/useAppStore';
 import { ENDPOINTS } from '../constants/endpoints';
+import { NODE_BASE_URL } from '../constants/api';
+import axios from 'axios';
 
 interface RequestOtpResponse {
   message: string;
@@ -11,6 +13,23 @@ interface VerifyOtpResponse {
   verified: true;
   phone: string;
 }
+
+const nodeApi = axios.create({
+  baseURL: NODE_BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Re-use same interceptor logic for auth token
+nodeApi.interceptors.request.use(async (config) => {
+  const token = await SecureStore.getItemAsync('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 interface CompleteProfileRequest {
   // Required
@@ -85,7 +104,8 @@ class AuthService {
    * POST /auth/request-otp
    */
   async requestOtp(phone: string): Promise<RequestOtpResponse> {
-    const response = await api.post<RequestOtpResponse>('/auth/request-otp', {
+    console.log('🔑 Requesting OTP from Node:', NODE_BASE_URL + ENDPOINTS.REQUEST_OTP);
+    const response = await nodeApi.post<RequestOtpResponse>(ENDPOINTS.REQUEST_OTP, {
       phone: this.normalizePhoneNumber(phone),
     });
     return response.data;
@@ -96,7 +116,8 @@ class AuthService {
    * POST /auth/verify-otp
    */
   async verifyOtp(phone: string, otp: string): Promise<VerifyOtpResponse> {
-    const response = await api.post<VerifyOtpResponse>('/auth/verify-otp', {
+    console.log('🔑 Verifying OTP at Node:', NODE_BASE_URL + ENDPOINTS.VERIFY_OTP);
+    const response = await nodeApi.post<VerifyOtpResponse>(ENDPOINTS.VERIFY_OTP, {
       phone: this.normalizePhoneNumber(phone),
       otp,
     });

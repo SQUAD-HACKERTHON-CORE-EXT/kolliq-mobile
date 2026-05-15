@@ -26,10 +26,8 @@ const OTPVerificationScreen = () => {
   const otpInputRef = useRef<TextInput>(null)
   const navigation = useNavigation<any>()
   const insets = useSafeAreaInsets()
-  const { phone, setOnboardingData } = useAppStore((state) => ({
-    phone: state.onboardingData.phone,
-    setOnboardingData: state.setOnboardingData,
-  }))
+  const phone = useAppStore((state) => state.onboardingData.phone)
+  const setOnboardingData = useAppStore((state) => state.setOnboardingData)
 
   const isComplete = otp.length === 6
   const isDisabled = !isComplete || loading
