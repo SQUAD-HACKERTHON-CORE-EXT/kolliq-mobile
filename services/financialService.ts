@@ -80,8 +80,57 @@ export const checkLoanEligibility = async () => {
 }
 
 export const applyLoan = async (amount: number) => {
-  const response = await apiClient.post(ENDPOINTS.LOAN_APPLY, { amount })
-  return response
+  try {
+    console.log('📤 APPLY LOAN - attempting POST', { url: ENDPOINTS.LOAN_APPLY, amount })
+    const response = await apiClient.post(ENDPOINTS.LOAN_APPLY, { amount })
+    return response
+  } catch (error: any) {
+    const status = error?.response?.status
+    console.log('❌ APPLY LOAN error', { status, url: error?.config?.url, data: error?.response?.data })
+
+    // Some backends may reject POST at a trailing-slash URL or expect GET for specific roles.
+    // Try fallback: attempt form-encoded POST, then POST without trailing slash, then GET as a last resort.
+    try {
+      console.log('📤 APPLY LOAN - retrying POST with form-encoded body')
+      const params = new URLSearchParams()
+      params.append('amount', String(amount))
+      const respForm = await apiClient.post(ENDPOINTS.LOAN_APPLY, params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      })
+      return respForm
+    } catch (errForm: any) {
+      console.log('❌ APPLY LOAN form-encoded POST failed', { err: errForm?.response?.data ?? errForm?.message })
+    }
+    try {
+      const altUrl = String(ENDPOINTS.LOAN_APPLY).replace(/\/$/, '')
+      if (altUrl !== ENDPOINTS.LOAN_APPLY) {
+        console.log('📤 APPLY LOAN - retrying POST without trailing slash', { altUrl })
+        const resp2 = await apiClient.post(altUrl, { amount })
+        return resp2
+      }
+    } catch (err2: any) {
+      console.log('❌ APPLY LOAN retry (no-trailing-slash) failed', { err: err2?.response?.data ?? err2?.message })
+    }
+
+    try {
+      console.log('📤 APPLY LOAN - retrying GET as fallback (no params)')
+      const resp3 = await apiClient.get(ENDPOINTS.LOAN_APPLY)
+      return resp3
+    } catch (err3: any) {
+      console.log('❌ APPLY LOAN fallback GET failed (no params)', { err: err3?.response?.data ?? err3?.message })
+    }
+
+    try {
+      console.log('📤 APPLY LOAN - retrying GET with amount query param')
+      const resp4 = await apiClient.get(ENDPOINTS.LOAN_APPLY, { params: { amount } })
+      return resp4
+    } catch (err4: any) {
+      console.log('❌ APPLY LOAN fallback GET with params failed', { err: err4?.response?.data ?? err4?.message })
+    }
+
+    // Re-throw original error if all fallbacks fail
+    throw error
+  }
 }
 
 export const repayLoan = async (loan_id: string, amount: number) => {

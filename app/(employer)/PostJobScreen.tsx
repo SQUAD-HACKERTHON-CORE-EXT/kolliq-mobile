@@ -98,7 +98,7 @@ export default function PostJobScreen() {
       navigation.navigate('EscrowInstructions', {
         job_id: payload.job_id || payload.id || `J${Date.now()}`,
         escrow_account: payload.escrow_instructions?.account_number || '—',
-        bank_name: payload.escrow_instructions?.bank_name || 'Squad',
+        bank_name: payload.escrow_instructions?.bank_name || '',
         amount: String(totalEscrow),
         reference: payload.escrow_instructions?.reference || `ESC-${Date.now()}`,
       });

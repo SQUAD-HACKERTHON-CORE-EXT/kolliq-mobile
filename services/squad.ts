@@ -1,5 +1,6 @@
 import api from './api';
 import { ApiResponse, Wallet, Transaction } from '../types';
+import { BASE_URL } from '../constants/api';
 
 class SquadService {
 
@@ -51,10 +52,39 @@ class SquadService {
     amount: number;
     description: string;
   }): Promise<{ escrowId: string; status: string }> {
-    const response = await api.post<
-      ApiResponse<{ escrowId: string; status: string }>
-    >('/squad/escrow/create', data);
-    return response.data.data!;
+    // Django-only escrow initiation candidates (DRF commonly requires trailing slash).
+    const endpointCandidates = [
+      `${BASE_URL}/api/virtual-account/initiate-dynamic-virtual-account/`,
+      `${BASE_URL}/api/virtual-account/initiate-dynamic-virtual-account`,
+      `${BASE_URL}/virtual-account/initiate-dynamic-virtual-account/`,
+      `${BASE_URL}/virtual-account/initiate-dynamic-virtual-account`,
+      `${BASE_URL}/api/squad/virtual-account/initiate-dynamic-virtual-account/`,
+      `${BASE_URL}/api/squad/virtual-account/initiate-dynamic-virtual-account`,
+      `${BASE_URL}/api/payments/escrow/create/`,
+      `${BASE_URL}/api/payments/escrow/create`,
+    ]
+
+    let lastErr: any = null
+    for (const url of endpointCandidates) {
+      try {
+        console.log('squad.createEscrow: trying', url)
+        const response = await api.post<
+          ApiResponse<{ escrowId: string; status: string }>
+        >(url, data)
+        console.log('squad.createEscrow: success', url)
+        return response.data.data!
+      } catch (err: any) {
+        lastErr = err
+        console.warn('squad.createEscrow: attempt failed', url, err?.response?.status)
+        const status = err?.response?.status
+        // For auth/validation/server errors, stop and surface immediately.
+        if (status && status !== 404) {
+          throw err
+        }
+      }
+    }
+
+    throw lastErr || new Error('Escrow endpoint not available')
   }
 
   /**

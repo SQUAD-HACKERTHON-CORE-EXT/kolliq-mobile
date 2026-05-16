@@ -174,6 +174,31 @@ export const getTransactions = async () => {
   console.log('📋 TRANSACTIONS (1st-unwrapped by apiClient):', JSON.stringify(data, null, 2));
 
   // Backend may return { transactions: [...] } or [...] directly
-  const txns = data?.transactions ?? data;
-  return Array.isArray(txns) ? txns : [];
+  const txns = data?.transactions ?? data ?? []
+
+  const normalizeTransaction = (t: any) => {
+    const id = String(t?.id ?? t?.transaction_id ?? t?.uuid ?? '')
+    const transaction_type = String(t?.transaction_type ?? t?.type ?? t?.txn_type ?? '').toLowerCase()
+    const amount = String(t?.amount ?? t?.value ?? t?.transaction_amount ?? '0')
+    const status = String(t?.status ?? t?.state ?? '').toLowerCase()
+    const job_title = t?.job_title ?? t?.job?.title ?? t?.job_title_display ?? null
+    const related_user_phone = t?.related_user_phone ?? t?.related_phone ?? t?.phone ?? null
+    const description = t?.description ?? t?.note ?? t?.memo ?? ''
+    const squad_reference = t?.squad_reference ?? t?.reference ?? t?.ref ?? ''
+    const created_at = t?.created_at ?? t?.timestamp ?? t?.date ?? null
+
+    return {
+      id,
+      transaction_type,
+      amount,
+      status,
+      job_title,
+      related_user_phone,
+      description,
+      squad_reference,
+      created_at,
+    }
+  }
+
+  return Array.isArray(txns) ? txns.map(normalizeTransaction) : [];
 }

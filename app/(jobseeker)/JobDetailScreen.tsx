@@ -64,15 +64,6 @@ export default function JobDetailScreen() {
     fetchFreshDetails();
   }, [params.jobId, params.id]);
 
-  if (!fontsLoaded || (loading && !job?.title)) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Fetching latest details...</Text>
-      </View>
-    );
-  }
-
   // Check if current user is the employer of this job (coerce types safely)
   const _employerIdRaw = job?.employerId ?? job?.employer_id ?? job?.employer?.id ?? job?.employer;
   const currentUserId = user?.id ?? storedUserId ?? '';
@@ -81,13 +72,21 @@ export default function JobDetailScreen() {
   const idMatch = String(currentUserId ?? '') === String(_employerIdRaw ?? '');
   const isEmployer = idMatch || (currentRole === 'employer' && idMatch);
 
-  // Guard: Employers must never reach AcceptJob/AcceptGig
   React.useEffect(() => {
     if (isEmployer) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
       console.warn('[JobDetail] Employer blocked from AcceptGig route — employerId:', String(_employerIdRaw ?? ''), 'userId:', currentUserId);
     }
   }, [isEmployer, _employerIdRaw, currentUserId]);
+
+  if (!fontsLoaded || (loading && !job?.title)) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Fetching latest details...</Text>
+      </View>
+    );
+  }
 
   const handleAcceptGig = () => {
     // Double-check guard in case component state is stale

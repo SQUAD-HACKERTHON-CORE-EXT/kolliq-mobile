@@ -38,9 +38,12 @@ export default function EmployerProfile({ navigation }: any) {
       
       // Load profile
       const profile: any = await getProfile()
+      console.log('📊 Profile loaded from backend:', { eis_score: profile?.eis_score, full_name: profile?.full_name })
       if (profile) {
         setUser(profile)
-        setEisScore(profile?.eis_score ?? 0)
+        const score = profile?.eis_score ?? 0
+        setEisScore(score)
+        console.log('✅ EIS Score set from backend:', score)
       }
 
       // Load jobs count
@@ -69,7 +72,7 @@ export default function EmployerProfile({ navigation }: any) {
         }
       }
     } catch (e) {
-      console.log('Error loading employer profile', e)
+      console.error('❌ Error loading employer profile', e)
       setEisScore(0)
     } finally {
       setLoading(false)
@@ -123,6 +126,16 @@ export default function EmployerProfile({ navigation }: any) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.subtitle}>Employer Profile</Text>
         <Text style={styles.title}>{useAppStore((s) => s.user?.business_name ?? s.user?.full_name ?? 'Employer')}</Text>
+        
+        {/* Refresh Profile Data */}
+        <TouchableOpacity 
+          style={styles.refreshButton}
+          onPress={loadProfileData}
+          disabled={loading}
+        >
+          <Ionicons name="refresh-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.refreshText}>{loading ? 'Refreshing...' : 'Refresh Profile'}</Text>
+        </TouchableOpacity>
 
         {/* Rating Card */}
         <Card variant="elevated" style={styles.ratingCard}>
@@ -364,6 +377,25 @@ const ReviewCard = ({ role, rating, text }: any) => (
 );
 
 const styles = StyleSheet.create({
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.md,
+    marginBottom: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: '#F0F7F5',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  refreshText: {
+    marginLeft: SPACING.sm,
+    fontFamily: FONTS.weights.semibold,
+    fontSize: 13,
+    color: COLORS.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,

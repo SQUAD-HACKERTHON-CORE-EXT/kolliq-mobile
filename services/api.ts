@@ -67,7 +67,9 @@ api.interceptors.response.use(
     // Normalize error message
     const message = extractApiErrorMessage(error, 'An unexpected error occurred')
     console.error('📥 API - Error message:', message)
-    return Promise.reject(new Error(message))
+    // Keep original axios error so callers can inspect error.response.status/data.
+    error.message = message
+    return Promise.reject(error)
   }
 );
 

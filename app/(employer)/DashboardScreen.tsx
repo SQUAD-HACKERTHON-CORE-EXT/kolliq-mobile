@@ -63,6 +63,14 @@ export default function DashboardScreen({ navigation }: any) {
     load()
   }, [])
 
+  const isJobFunded = (job: any) => {
+    if (!job) return false
+    if (job.escrow_funded === true) return true
+    if (job.is_funded === true) return true
+    const fundingState = String(job.escrow_status ?? job.funding_status ?? '').toLowerCase()
+    return fundingState === 'funded' || fundingState === 'completed' || fundingState === 'paid'
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <DashboardHeader 
@@ -93,8 +101,8 @@ export default function DashboardScreen({ navigation }: any) {
             score={user?.eis_score || 0}
             primaryActionTitle="+ Fund Escrow"
             secondaryActionTitle="History"
-            onPrimaryAction={() => navigation.navigate('WalletScreen')}
-            onSecondaryAction={() => navigation.navigate('WalletScreen')}
+            onPrimaryAction={() => { console.log('Dashboard: Fund Escrow button pressed'); navigation.navigate('FundEscrow') }}
+            onSecondaryAction={() => { console.log('Dashboard: Escrow history pressed'); navigation.navigate('WalletScreen') }}
           >
             <Text style={styles.escrowDisclaimer}>
               Funds held securely in Squad escrow until job is confirmed complete
@@ -136,6 +144,8 @@ export default function DashboardScreen({ navigation }: any) {
             <Text style={{ color: COLORS.textSecondary }}>No active postings</Text>
           ) : (
             jobs.map((job: any) => {
+              const selectedJobId = job.id ?? job.job_id
+              const funded = isJobFunded(job)
               const createdDate = job.created_at ? new Date(job.created_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'Recently'
               return (
                 <JobPostingCard 
@@ -145,7 +155,21 @@ export default function DashboardScreen({ navigation }: any) {
                   workersNeeded={job.workers_needed ?? 0}
                   payPerWorker={job.pay_per_worker ?? 0}
                   status={job.status ?? 'active'}
-                  onPress={() => navigation.navigate('JobDetail', { jobId: job.id ?? job.job_id })}
+                  funded={funded}
+                  onPress={() => {
+                    navigation.navigate('JobDetail', {
+                      jobId: selectedJobId,
+                      id: selectedJobId,
+                      job_id: selectedJobId,
+                      job,
+                    })
+                  }}
+                  onFundPress={() => navigation.navigate('FundEscrow', {
+                    job_id: selectedJobId,
+                    jobId: selectedJobId,
+                    id: selectedJobId,
+                    job,
+                  })}
                 />
               )
             })
@@ -164,7 +188,7 @@ export default function DashboardScreen({ navigation }: any) {
   )
 }
 
-const JobPostingCard = ({ title, posted, workersNeeded, payPerWorker, status, onPress }: any) => (
+const JobPostingCard = ({ title, posted, workersNeeded, payPerWorker, status, funded, onPress, onFundPress }: any) => (
   <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
     <Card variant="outline" style={styles.jobCard}>
       <View style={[styles.jobIconPlaceholder, status === 'completed' ? { backgroundColor: '#E0F2FE' } : {}]} />
@@ -175,6 +199,15 @@ const JobPostingCard = ({ title, posted, workersNeeded, payPerWorker, status, on
           <Text style={styles.jobPayRate}>₦{formatNumber(payPerWorker)} per worker</Text>
         )}
       </View>
+      {funded ? (
+        <View style={[styles.fundBadge, styles.fundedBadge]}>
+          <Text style={[styles.fundBadgeText, styles.fundedBadgeText]}>Funded</Text>
+        </View>
+      ) : (
+        <TouchableOpacity activeOpacity={0.85} onPress={onFundPress} style={[styles.fundBadge, styles.unfundedBadge]}>
+          <Text style={[styles.fundBadgeText, styles.unfundedBadgeText]}>Fund</Text>
+        </TouchableOpacity>
+      )}
     </Card>
   </TouchableOpacity>
 );
@@ -253,6 +286,31 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.weights.bold,
     color: COLORS.primary,
     marginTop: 4,
+  },
+  fundBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    marginLeft: SPACING.sm,
+  },
+  unfundedBadge: {
+    backgroundColor: '#FFF7E6',
+    borderColor: '#F8C471',
+  },
+  fundedBadge: {
+    backgroundColor: '#EAF8EE',
+    borderColor: '#9FD5AE',
+  },
+  fundBadgeText: {
+    fontSize: 12,
+    fontFamily: FONTS.weights.semibold,
+  },
+  unfundedBadgeText: {
+    color: '#B06A00',
+  },
+  fundedBadgeText: {
+    color: '#1E7A3B',
   },
 
   escrowDisclaimer: {

@@ -29,10 +29,16 @@ export default function EscrowInstructionsScreen() {
         if (params.job_id) {
           const jobDetail = await getJobDetail(params.job_id);
           const escrow = jobDetail?.escrow_instructions;
+          console.log('EscrowInstructions: source data', {
+            job_id: params.job_id,
+            escrow,
+            params_bank_name: params.bank_name,
+            params_escrow_account: params.escrow_account,
+          });
 
           // Use server data if available, otherwise fallback to params passed from PostJob screen
           const accountNumber = escrow?.account_number || params.escrow_account;
-          const bank = escrow?.bank_name || params.bank_name;
+          const bank = escrow?.bank_name || params.bank_name || '';
           const reference = escrow?.reference || params.reference;
 
           if (!accountNumber || accountNumber === '—') {
@@ -42,7 +48,7 @@ export default function EscrowInstructionsScreen() {
 
           setInstructions({
             accountNumber,
-            bank,
+            bank: bank || 'Bank name not provided',
             amount: params.amount
               ? `₦${parseInt(params.amount as string).toLocaleString()}`
               : (escrow?.amount ? `₦${parseInt(String(escrow.amount)).toLocaleString()}` : '—'),
@@ -152,10 +158,15 @@ export default function EscrowInstructionsScreen() {
           <Text style={styles.noticeText}>
             Include the reference code in your payment narration. Your job goes live automatically when payment is confirmed by Squad.
           </Text>
+          {instructions.bank === 'Bank name not provided' && (
+            <Text style={styles.noticeText}>
+              Bank name is missing from server response. Use the account number and contact support/backend admin to provide the correct bank name before transfer.
+            </Text>
+          )}
         </View>
 
-        <TouchableOpacity style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Share Instructions</Text>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => { console.log('EscrowInstructions: Check status pressed', { job_id: params.job_id, amount: params.amount }); navigation.navigate('FundEscrow', { job_id: params.job_id, amount: params.amount, reference: instructions.reference, escrow_account: instructions.accountNumber, bank_name: instructions.bank === 'Bank name not provided' ? '' : instructions.bank }) }}>
+          <Text style={styles.secondaryButtonText}>I paid via bank - Check status</Text>
         </TouchableOpacity>
       </View>
 

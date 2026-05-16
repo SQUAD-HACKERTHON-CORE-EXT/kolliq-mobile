@@ -52,6 +52,7 @@ import AcceptJobScreen from './app/(jobseeker)/AcceptJobScreen';
 import MyJobsScreen from './app/(jobseeker)/MyJobsScreen';
 import PostJobScreen from './app/(employer)/PostJobScreen';
 import EscrowInstructionsScreen from './app/(employer)/EscrowInstructionsScreen';
+import FundEscrowScreen from './app/(employer)/FundEscrowScreen';
 import JobApplicantsScreen from './app/(employer)/JobApplicantsScreen';
 import EISScoreScreen from './app/(shared)/EISScoreScreen';
 import ChangePinScreen from './app/(shared)/ChangePinScreen';
@@ -173,6 +174,7 @@ export default function App() {
           <Stack.Screen name="Workers" component={WorkersScreen} />
           <Stack.Screen name="PostJob" component={PostJobScreen} />
           <Stack.Screen name="EscrowInstructions" component={EscrowInstructionsScreen} />
+          <Stack.Screen name="FundEscrow" component={FundEscrowScreen} />
           <Stack.Screen name="JobApplicants" component={JobApplicantsScreen} />
           
           {/* Trader Routes */}
