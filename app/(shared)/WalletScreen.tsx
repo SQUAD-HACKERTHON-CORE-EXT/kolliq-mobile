@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Clipboard, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Clipboard, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
@@ -31,6 +32,7 @@ export default function WalletScreen({ navigation }: any) {
 
   const user = useAppStore((state) => state.user);
   const userName = user?.full_name || 'Wallet';
+  const isWithdrawalBankVerified = bankAccount?.bank_account_verified === true;
 
   const isLoading = walletLoading || transactionsLoading;
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -38,6 +40,13 @@ export default function WalletScreen({ navigation }: any) {
   useEffect(() => {
     loadWalletData();
   }, [retryKey]);
+
+  // Reload whenever screen comes into focus so updates from other screens appear
+  useFocusEffect(
+    useCallback(() => {
+      loadWalletData();
+    }, [retryKey])
+  );
 
   const loadWalletData = async () => {
     try {
@@ -80,6 +89,24 @@ export default function WalletScreen({ navigation }: any) {
       setTransactionsLoading(false);
     }
   };
+
+  const handleWithdraw = () => {
+    const role = useAppStore.getState().user?.role
+    const displayRole = (useAppStore.getState() as any).getDisplayRole?.() || role
+
+    if (bankAccount && !isWithdrawalBankVerified) {
+      navigation.navigate('WithdrawalVerification')
+      return
+    }
+
+    if (displayRole === 'employer') {
+      navigation.navigate('WithdrawalScreen')
+    } else if (displayRole === 'trader') {
+      navigation.navigate('WithdrawalScreen')
+    } else {
+      navigation.navigate('WithdrawalScreen')
+    }
+  }
 
   const getNavTabs = () => {
     if (user?.role === 'employer') {
@@ -135,6 +162,10 @@ export default function WalletScreen({ navigation }: any) {
     total_interest_earned: '0',
     annual_interest_rate: 0,
   };
+  // Prefer explicit bankAccount, but fall back to fields returned on the wallet object
+  const bankName = bankAccount?.bank_name ?? bankAccount?.bankName ?? bankAccount?.name ?? displayWallet?.bank_name ?? user?.squad_bank_name ?? 'No bank linked yet';
+  const accountNumberValue = bankAccount?.account_number ?? bankAccount?.accountNumber ?? displayWallet?.account_number ?? user?.squad_account_number ?? '—';
+  const accountNameValue = bankAccount?.account_name ?? bankAccount?.accountName ?? displayWallet?.account_name ?? user?.business_name ?? '—';
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -183,8 +214,8 @@ export default function WalletScreen({ navigation }: any) {
             <TouchableOpacity style={styles.accountInfoRow} onPress={handleCopy}>
               <View style={styles.accountInfoLeft}>
                 <Ionicons name="card-outline" size={16} color="rgba(255,255,255,0.7)" />
-                <Text style={styles.accountNumber}>{displayWallet?.account_number || '—'}</Text>
-                <Text style={styles.bankName}>• {bankAccount?.bank_name ?? bankAccount?.bankName ?? 'No bank linked yet'}</Text>
+                <Text style={styles.accountNumber}>{accountNumberValue}</Text>
+                <Text style={styles.bankName}>• {bankName}</Text>
               </View>
               <View style={styles.copyBadge}>
                 <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={14} color={COLORS.primary} />
@@ -197,9 +228,12 @@ export default function WalletScreen({ navigation }: any) {
                 <Ionicons name="cash-outline" size={18} color={COLORS.primary} />
                 <Text style={styles.withdrawalBankTitle}>Withdrawal Bank</Text>
               </View>
-              <Text style={styles.withdrawalBankValue}>{bankAccount?.bank_name ?? bankAccount?.bankName ?? 'No bank linked yet'}</Text>
-              <Text style={styles.withdrawalBankMeta}>{bankAccount?.account_name ?? bankAccount?.accountName ?? 'Add a bank account to request payouts'}</Text>
-              <Text style={styles.withdrawalBankMeta}>{bankAccount?.account_number ?? bankAccount?.accountNumber ?? '—'}</Text>
+              <Text style={styles.withdrawalBankValue}>{bankName}</Text>
+              <Text style={styles.withdrawalBankMeta}>{accountNameValue ?? 'Add a bank account to request payouts'}</Text>
+              <Text style={styles.withdrawalBankMeta}>{accountNumberValue}</Text>
+                {bankAccount && !isWithdrawalBankVerified ? (
+                  <Text style={styles.withdrawalBankWarning}>Account has to be verified before withdrawal.</Text>
+                ) : null}
             </View>
 
             <View style={{ marginTop: 8, marginBottom: 20 }}>
@@ -211,9 +245,14 @@ export default function WalletScreen({ navigation }: any) {
             {/* Action Buttons */}
             <View style={styles.actionRow}>
               <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => {}}
+                style={[styles.actionButton, bankAccount && !isWithdrawalBankVerified && styles.actionButtonDisabled]}
+                onPress={() => {
+                  if (bankAccount && !isWithdrawalBankVerified) {
+                    navigation.navigate('WithdrawalVerification')
+                  }
+                }}
                 activeOpacity={0.8}
+                disabled={Boolean(bankAccount && !isWithdrawalBankVerified)}
               >
                 <View style={styles.actionIconCircle}>
                   <Ionicons name="add" size={20} color={COLORS.primary} />
@@ -244,9 +283,10 @@ export default function WalletScreen({ navigation }: any) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => navigation.navigate('RequestPayout')}
+                style={[styles.actionButton, bankAccount && !isWithdrawalBankVerified && styles.actionButtonDisabled]}
+                onPress={handleWithdraw}
                 activeOpacity={0.8}
+                disabled={Boolean(bankAccount && !isWithdrawalBankVerified)}
               >
                 <View style={styles.actionIconCircle}>
                   <Ionicons name="download-outline" size={20} color={COLORS.primary} />
@@ -588,6 +628,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  actionButtonDisabled: {
+    opacity: 0.45,
+  },
   actionIconCircle: {
     width: 48,
     height: 48,
@@ -878,5 +921,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.family,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  withdrawalBankWarning: {
+    fontSize: 13,
+    fontFamily: FONTS.weights.semibold,
+    color: COLORS.error,
+    marginTop: 8,
   },
 });

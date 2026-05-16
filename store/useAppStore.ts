@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import * as SecureStore from 'expo-secure-store'
+import { getSavedBankAccount, getWithdrawalHistory, requestWithdrawal as requestWithdrawalService } from '../services/walletService'
+import { handleApiError } from '../utils/handleApiError'
 
 interface User {
   id: string
@@ -125,6 +127,23 @@ interface AppState {
   // Wallet
   wallet: Wallet | null
   walletLoading: boolean
+  savedBankAccount: {
+    has_bank_account: boolean
+    bank_account_number?: string
+    bank_code?: string
+    bank_name?: string
+    bank_account_name?: string
+    bank_account_verified?: boolean
+  } | null
+  withdrawalHistory: any[]
+  withdrawalLoading: boolean
+  bankVerificationResult: {
+    verified: boolean
+    account_name: string
+    account_number: string
+    bank_code: string
+    bank_name: string
+  } | null
 
   // Financial unlock thresholds
   savingsUnlocked: boolean
@@ -168,6 +187,13 @@ interface AppState {
   setWallet: (wallet: Wallet) => void
   setWalletLoading: (value: boolean) => void
   updateWalletBalance: (balance: string) => void
+  setSavedBankAccount: (data: any) => void
+  setBankVerificationResult: (data: any) => void
+  setWithdrawalHistory: (data: any[]) => void
+  setWithdrawalLoading: (value: boolean) => void
+  fetchSavedBankAccount: () => Promise<any>
+  fetchWithdrawalHistory: () => Promise<any[]>
+  requestWithdrawal: (data: { amount: number; bank_code: string; account_number: string }) => Promise<any>
 
   // Actions — Jobs
   setJobsFeed: (jobs: Job[]) => void
@@ -208,6 +234,10 @@ const initialState = {
   eisScore: 0,
   wallet: null,
   walletLoading: false,
+  savedBankAccount: null,
+  withdrawalHistory: [],
+  withdrawalLoading: false,
+  bankVerificationResult: null,
   savingsUnlocked: false,
   loansUnlocked: false,
   insuranceUnlocked: false,
@@ -272,6 +302,56 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       wallet: state.wallet ? { ...state.wallet, balance } : null,
     })),
+  setSavedBankAccount: (data) => set({ savedBankAccount: data }),
+  setBankVerificationResult: (data) => set({ bankVerificationResult: data }),
+  setWithdrawalHistory: (data) => set({ withdrawalHistory: data }),
+  setWithdrawalLoading: (value) => set({ withdrawalLoading: value }),
+  fetchSavedBankAccount: async () => {
+    try {
+      const data = await getSavedBankAccount()
+      set({ savedBankAccount: data })
+      return data
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        const empty = { has_bank_account: false }
+        set({ savedBankAccount: empty })
+        return empty
+      }
+      handleApiError(error, 'Failed to load bank account.')
+      throw error
+    }
+  },
+  fetchWithdrawalHistory: async () => {
+    set({ withdrawalLoading: true })
+    try {
+      const data = await getWithdrawalHistory()
+      set({ withdrawalHistory: data })
+      return data
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        set({ withdrawalHistory: [], withdrawalLoading: false })
+        return []
+      }
+      handleApiError(error, 'Failed to load withdrawal history.')
+      throw error
+    } finally {
+      set({ withdrawalLoading: false })
+    }
+  },
+  requestWithdrawal: async (data) => {
+    try {
+      const response = await requestWithdrawalService(data)
+      const nextBalance = response?.wallet?.balance ?? response?.balance
+      if (nextBalance) {
+        set((state) => ({
+          wallet: state.wallet ? { ...state.wallet, balance: String(nextBalance) } : state.wallet,
+        }))
+      }
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
 
   setJobsFeed: (jobs) => set({ jobsFeed: jobs, jobsLoading: false }),
   setMyJobs: (jobs) => set({ myJobs: jobs }),

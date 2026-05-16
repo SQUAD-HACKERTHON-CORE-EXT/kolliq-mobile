@@ -57,6 +57,9 @@ import EISScoreScreen from './app/(shared)/EISScoreScreen';
 import ChangePinScreen from './app/(shared)/ChangePinScreen';
 import TransferScreen from './app/(shared)/TransferScreen';
 import RequestPayoutScreen from './app/(shared)/RequestPayoutScreen';
+import WithdrawalScreen from './components/screens/shared/WithdrawalScreen';
+import AddBankAccountScreen from './components/screens/shared/AddBankAccountScreen';
+import WithdrawalVerificationScreen from './components/screens/shared/WithdrawalVerificationScreen';
 import { COLORS } from './constants';
 import { useAppStore } from './store/useAppStore';
 import { authService } from './services/auth';
@@ -188,6 +191,9 @@ export default function App() {
           <Stack.Screen name="ChangePin" component={ChangePinScreen} />
           <Stack.Screen name="Transfer" component={TransferScreen} />
           <Stack.Screen name="RequestPayout" component={RequestPayoutScreen} />
+          <Stack.Screen name="WithdrawalScreen" component={WithdrawalScreen} />
+          <Stack.Screen name="AddBankAccountScreen" component={AddBankAccountScreen} />
+          <Stack.Screen name="WithdrawalVerification" component={WithdrawalVerificationScreen} />
         </Stack.Navigator>
         <StatusBar style="dark" />
       </NavigationContainer>

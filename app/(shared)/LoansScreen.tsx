@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT, BUSINESS_RULES } from '../../constants';
 import { useAppStore } from '../../store/useAppStore';
 import { applyLoan, checkLoanEligibility, getLoans } from '../../services/financialService';
 import { getErrorMessage } from '../../utils/handleApiError';
@@ -83,13 +83,13 @@ export default function LoansScreen({ navigation }: any) {
           <View style={styles.lockedProgressCard}>
             <View style={styles.lockedProgressHeader}>
               <Text style={styles.lockedProgressLabel}>Your EIS Score</Text>
-              <Text style={styles.lockedProgressValue}>{eisScore}/50</Text>
+              <Text style={styles.lockedProgressValue}>{eisScore}/{BUSINESS_RULES.LOAN_UNLOCK_SCORE}</Text>
             </View>
             <View style={styles.progressBg}>
-              <View style={[styles.progressFill, { width: `${Math.min((eisScore / 50) * 100, 100)}%` }]} />
+              <View style={[styles.progressFill, { width: `${Math.min((eisScore / BUSINESS_RULES.LOAN_UNLOCK_SCORE) * 100, 100)}%` }]} />
             </View>
             <Text style={styles.lockedProgressHint}>
-              {Math.max(0, 50 - eisScore)} more points needed
+              {Math.max(0, BUSINESS_RULES.LOAN_UNLOCK_SCORE - eisScore)} more points needed
             </Text>
           </View>
           <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.goBack()}>

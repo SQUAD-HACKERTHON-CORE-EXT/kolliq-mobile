@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { formatCurrency } from '../../utils/formatCurrency';
-import { getBankAccount, getBanks, getWallet, normalizeNipCode, requestPayout, saveBankAccount, verifyBankAccount } from '../../services/walletService';
+import { getBankAccount, getBanks, getWallet, requestPayout, saveBankAccount, verifyBankAccount, normalizeNipCode } from '../../services/walletService';
 import { useAppStore } from '../../store/useAppStore';
 
 export default function RequestPayoutScreen({ navigation }: any) {
@@ -25,9 +25,10 @@ export default function RequestPayoutScreen({ navigation }: any) {
   const [accountNumberInput, setAccountNumberInput] = useState('');
   const [linkModalVisible, setLinkModalVisible] = useState(false);
   const [linkSubmitting, setLinkSubmitting] = useState(false);
+  const [savedLinkPending, setSavedLinkPending] = useState(false);
   const [nipModalVisible, setNipModalVisible] = useState(false);
   const [nipCode, setNipCode] = useState('');
-  const [savedLinkPending, setSavedLinkPending] = useState(false);
+  const [nipSubmitting, setNipSubmitting] = useState(false);
 
   const extractBanks = (payload: any) => {
     const candidate = payload?.banks ?? payload?.data ?? payload;
@@ -113,12 +114,10 @@ export default function RequestPayoutScreen({ navigation }: any) {
   const resetLinkForm = () => {
     setBankSearchQuery('');
     setAccountNumberInput('');
-    setNipCode('');
-    setNipModalVisible(false);
     setLinkModalVisible(false);
   };
 
-  const handleLinkBank = async (nip?: string) => {
+  const handleLinkBank = async () => {
     if (!selectedBankCode) {
       Alert.alert('Select bank', 'Choose a bank to link.');
       return;
@@ -131,10 +130,8 @@ export default function RequestPayoutScreen({ navigation }: any) {
 
     try {
       setLinkSubmitting(true);
-      // Belt-and-suspenders: normalise NIP here so no caller can bypass the check
-      const cleanNip = nip ? normalizeNipCode(nip) : '';
-      console.log('🔐 handleLinkBank – nip raw:', JSON.stringify(nip), '→ normalized:', JSON.stringify(cleanNip), 'length:', cleanNip.length);
-      const verified: any = await verifyBankAccount(selectedBankCode, accountNumberInput, cleanNip || undefined);
+      // Call verify endpoint per API spec (bank_code + account_number only)
+      const verified: any = await verifyBankAccount(selectedBankCode, accountNumberInput);
       const verifiedName = extractAccountName(verified);
 
       if (!verifiedName) {
@@ -148,6 +145,8 @@ export default function RequestPayoutScreen({ navigation }: any) {
         bank_account_name: String(verifiedName),
       });
 
+      console.log('📤 SAVE BANK RESPONSE:', JSON.stringify(saved, null, 2));
+
       const resolvedBank = saved?.bank_account ?? saved?.data ?? saved ?? {
         bank_code: selectedBankCode,
         account_number: accountNumberInput,
@@ -155,26 +154,69 @@ export default function RequestPayoutScreen({ navigation }: any) {
         bank_name: selectedBankName,
       };
 
+      console.log('🔁 Resolved bank object to set:', JSON.stringify(resolvedBank, null, 2));
+
       setBankAccount(resolvedBank);
       resetLinkForm();
       Alert.alert('Bank linked', 'Your withdrawal bank has been saved successfully.');
     } catch (error: any) {
-      const message = error?.message ?? '';
-      const lower = typeof message === 'string' ? message.toLowerCase() : '';
-      console.log('⚠️  handleLinkBank caught error:', {
-        message: message?.substring(0, 160),
-        hasNipCode: lower.includes('nip_code'),
-        nipArgument: typeof nip === 'string' ? nip.replace(/./g,'*') : String(nip ?? 'falsy'),
-      });
-      // Re-open NIP modal if backend complains about nip_code OR if no NIP was supplied at all
-      if (lower.includes('nip_code') || !nip) {
-        console.log('🔑  → re-opening NIP modal (lower.hasNipCode:', lower.includes('nip_code'), '!nip:', !nip, ')');
+      // If backend asks for NIP (422 with nip_code detail), prompt user once and retry
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail ?? '';
+      console.log('⚠️  handleLinkBank caught error:', { status, detail });
+      if (status === 422 && typeof detail === 'string' && detail.toLowerCase().includes('nip_code')) {
+        // Open NIP prompt modal so user can enter last 6 digits
         setNipModalVisible(true);
         return;
       }
-      Alert.alert('Link failed', message || 'Unable to link bank account.');
+
+      const message = error?.message ?? 'Unable to link bank account.';
+      Alert.alert('Link failed', message);
     } finally {
       setLinkSubmitting(false);
+    }
+  };
+
+  const submitNip = async () => {
+    const normalized = normalizeNipCode(nipCode);
+    if (!normalized || normalized.length !== 6) {
+      Alert.alert('Invalid NIP', 'Enter the 6-digit NIP provided by your bank.');
+      return;
+    }
+
+    try {
+      setNipSubmitting(true);
+      // Retry verification with NIP included
+      const verified: any = await verifyBankAccount(selectedBankCode as string, accountNumberInput, normalized);
+      const verifiedName = extractAccountName(verified);
+
+      const saved: any = await saveBankAccount({
+        bank_code: selectedBankCode as string,
+        account_number: accountNumberInput,
+        bank_account_name: String(verifiedName),
+      });
+
+      console.log('📤 SAVE BANK RESPONSE (with NIP):', JSON.stringify(saved, null, 2));
+
+      const resolvedBank = saved?.bank_account ?? saved?.data ?? saved ?? {
+        bank_code: selectedBankCode,
+        account_number: accountNumberInput,
+        bank_account_name: verifiedName,
+        bank_name: selectedBankName,
+      };
+
+      console.log('🔁 Resolved bank object to set (with NIP):', JSON.stringify(resolvedBank, null, 2));
+      setBankAccount(resolvedBank);
+      setNipModalVisible(false);
+      setNipCode('');
+      resetLinkForm();
+      Alert.alert('Bank linked', 'Your withdrawal bank has been saved successfully.');
+    } catch (error: any) {
+      console.log('⚠️ submitNip error:', error?.response?.data ?? error?.message ?? error);
+      const detail = error?.response?.data?.detail ?? error?.message ?? 'Unable to link bank account.';
+      Alert.alert('NIP failed', String(detail));
+    } finally {
+      setNipSubmitting(false);
     }
   };
 
@@ -357,20 +399,23 @@ export default function RequestPayoutScreen({ navigation }: any) {
         </View>
       </Modal>
 
-      <Modal visible={nipModalVisible} animationType="fade" transparent>
+      <Modal visible={nipModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalPanel, { paddingTop: 18 }]}> 
-            <Text style={styles.modalTitle}>Enter 6-digit NIP</Text>
-            <Text style={styles.modalSubtitle}>Your bank may require a NIP to verify this account.</Text>
+          <View style={styles.modalPanel}>
+            <Text style={styles.modalTitle}>Enter Bank NIP</Text>
+            <Text style={styles.modalSubtitle}>Your bank requires a 6-digit NIP to verify this account. Enter it below.</Text>
+
             <TextInput
-              style={styles.nipInput}
+              style={styles.accountInput}
+              placeholder="6-digit NIP"
+              placeholderTextColor={COLORS.textMuted}
               keyboardType="numeric"
               maxLength={6}
-              placeholder="123456"
-              placeholderTextColor={COLORS.textMuted}
+              secureTextEntry
               value={nipCode}
-              onChangeText={(text) => setNipCode(text.replace(/\D/g, ''))}
+              onChangeText={setNipCode}
             />
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.secondaryButton}
@@ -381,28 +426,16 @@ export default function RequestPayoutScreen({ navigation }: any) {
               >
                 <Text style={styles.secondaryButtonText}>Cancel</Text>
               </TouchableOpacity>
-               <TouchableOpacity
-                 style={styles.primaryActionButton}
-                 onPress={async () => {
-                   // Normalize first so pasted / spaced codes (e.g. "123 456") pass the length check
-                   const rawNip = nipCode.trim();
-                   const normalizedNip = rawNip.replace(/\D/g, '');
-                   if (!normalizedNip || normalizedNip.length !== 6) {
-                     Alert.alert('Invalid NIP', 'NIP code must be exactly 6 digits.');
-                     return;
-                   }
-                   console.log('🔐 NIP modal submit – normalizedNip length:', normalizedNip.length, 'first/last:', normalizedNip[0], normalizedNip[5]);
-                   setNipModalVisible(false);
-                   await handleLinkBank(normalizedNip);
-                   setNipCode('');
-                 }}
-               >
-                <Text style={styles.primaryActionButtonText}>Submit</Text>
+
+              <TouchableOpacity style={styles.primaryActionButton} onPress={() => submitNip()} disabled={nipSubmitting}>
+                {nipSubmitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.primaryActionButtonText}>Submit NIP</Text>}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      
     </SafeAreaView>
   );
 }

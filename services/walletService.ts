@@ -73,7 +73,14 @@ export const getBanks = async () => {
 export const getBankAccount = async () => {
   const data: any = await apiClient.get(ENDPOINTS.BANK_ACCOUNT)
   console.log('🏦 BANK ACCOUNT (1st-unwrapped by apiClient):', JSON.stringify(data, null, 2));
-  return data;               // already fully unwrapped
+
+  const resolved = data?.bank_account ?? data?.data ?? data ?? null
+  if (resolved) {
+    const rawVerified = resolved?.bank_account_verified ?? resolved?.is_verified ?? resolved?.verified ?? resolved?.bank_verified
+    resolved.bank_account_verified = Boolean(rawVerified === true || rawVerified === 'true' || rawVerified === 1 || rawVerified === '1')
+  }
+
+  return resolved
 }
 
 export const verifyBankAccount = async (
@@ -113,7 +120,13 @@ export const saveBankAccount = async (data: {
     ...data,
     confirm: true,
   })
-  return response as any
+  const resp: any = response
+  const resolved = resp?.bank_account ?? resp?.data ?? resp ?? null
+  if (resolved) {
+    const rawVerified = resolved?.bank_account_verified ?? resolved?.is_verified ?? resolved?.verified ?? resolved?.bank_verified
+    resolved.bank_account_verified = Boolean(rawVerified === true || rawVerified === 'true' || rawVerified === 1 || rawVerified === '1')
+  }
+  return resolved as any
 }
 
 export const requestPayout = async (amount: number, note?: string) => {
@@ -125,6 +138,35 @@ export const requestPayout = async (amount: number, note?: string) => {
   console.log('💸 REQUEST PAYOUT RESPONSE:', JSON.stringify(response, null, 2))
 
   return response as any
+}
+
+export const getSavedBankAccount = async () => {
+  const data: any = await apiClient.get(ENDPOINTS.BANK_ACCOUNT)
+  const resolved = data?.bank_account ?? data?.data ?? data ?? null
+  if (resolved) {
+    const rawVerified = resolved?.bank_account_verified ?? resolved?.is_verified ?? resolved?.verified ?? resolved?.bank_verified
+    resolved.bank_account_verified = Boolean(rawVerified === true || rawVerified === 'true' || rawVerified === 1 || rawVerified === '1')
+  }
+  return resolved
+}
+
+export const requestWithdrawal = async (data: {
+  amount: number
+  bank_code: string
+  account_number: string
+}) => {
+  const response: any = await apiClient.post(ENDPOINTS.WITHDRAW, {
+    amount: data.amount,
+    bank_code: data.bank_code,
+    account_number: data.account_number,
+  })
+  return response
+}
+
+export const getWithdrawalHistory = async () => {
+  const data: any = await apiClient.get(ENDPOINTS.WITHDRAW)
+  const withdrawals = data?.withdrawals ?? data?.results ?? data?.data ?? data
+  return Array.isArray(withdrawals) ? withdrawals : []
 }
 
 export const getTransactions = async () => {

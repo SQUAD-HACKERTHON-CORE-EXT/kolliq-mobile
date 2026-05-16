@@ -19,11 +19,12 @@ const NAV_TABS = [
 
 export default function EmployerProfile({ navigation }: any) {
   const storeUser = useAppStore((s) => s.user)
+  const employerProfile = storeUser as any
   const setUser = useAppStore((s) => s.setUser)
   const [jobsCount, setJobsCount] = useState(0)
   const [eisScore, setEisScore] = useState(0)
   const [ratings, setRatings] = useState<any[]>([])
-  const [averageRating, setAverageRating] = useState(0)
+  const [averageRating, setAverageRating] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [loggingOut, setLoggingOut] = useState(false)
 
@@ -58,10 +59,13 @@ export default function EmployerProfile({ navigation }: any) {
           if (Array.isArray(ratingsList) && ratingsList.length > 0) {
             const avg = ratingsList.reduce((sum: number, r: any) => sum + (r.stars ?? r.rating ?? 0), 0) / ratingsList.length
             setAverageRating(parseFloat(avg.toFixed(1)))
+          } else {
+            setAverageRating(null)
           }
         } catch (e) {
           console.log('Error loading ratings:', e)
           setRatings([])
+          setAverageRating(null)
         }
       }
     } catch (e) {
@@ -127,7 +131,9 @@ export default function EmployerProfile({ navigation }: any) {
               <Ionicons name="star" size={32} color={COLORS.warning} />
             </View>
           </View>
-          <Text style={styles.ratingValue}>{loading ? '—' : (averageRating || 'N/A')}</Text>
+          <Text style={styles.ratingValue}>
+            {loading ? '—' : averageRating !== null ? averageRating.toFixed(1) : 'No ratings yet'}
+          </Text>
           <Text style={styles.ratingLabel}>Average Business Rating</Text>
           
           <View style={styles.statsRow}>
@@ -147,14 +153,14 @@ export default function EmployerProfile({ navigation }: any) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Business Details</Text>
           
-          <Card variant="outlined" style={styles.detailsCard}>
+          <Card variant="outline" style={styles.detailsCard}>
             <View style={styles.detailRow}>
               <View style={styles.detailIcon}>
                 <Ionicons name="business-outline" size={18} color={COLORS.primary} />
               </View>
               <View style={styles.detailContent}>
                 <Text style={styles.detailLabel}>Business Name</Text>
-                <Text style={styles.detailValue}>{storeUser?.business_name || 'N/A'}</Text>
+                <Text style={styles.detailValue}>{employerProfile?.business_name || 'N/A'}</Text>
               </View>
             </View>
 
@@ -165,9 +171,9 @@ export default function EmployerProfile({ navigation }: any) {
               <View style={styles.detailContent}>
                 <Text style={styles.detailLabel}>Location</Text>
                 <Text style={styles.detailValue}>
-                  {storeUser?.location_area && storeUser?.location_city
-                    ? `${storeUser.location_area}, ${storeUser.location_city}`
-                    : storeUser?.location_city || storeUser?.location_area || 'N/A'}
+                  {employerProfile?.location_area && employerProfile?.location_city
+                    ? `${employerProfile.location_area}, ${employerProfile.location_city}`
+                    : employerProfile?.location_city || employerProfile?.location_area || 'N/A'}
                 </Text>
               </View>
             </View>
@@ -178,11 +184,11 @@ export default function EmployerProfile({ navigation }: any) {
               </View>
               <View style={styles.detailContent}>
                 <Text style={styles.detailLabel}>Phone Number</Text>
-                <Text style={styles.detailValue}>{storeUser?.phone || 'N/A'}</Text>
+                <Text style={styles.detailValue}>{employerProfile?.phone || 'N/A'}</Text>
               </View>
             </View>
 
-            {storeUser?.is_verified && (
+            {employerProfile?.is_verified && (
               <View style={styles.detailRow}>
                 <View style={styles.detailIcon}>
                   <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.primary} />
@@ -194,7 +200,7 @@ export default function EmployerProfile({ navigation }: any) {
               </View>
             )}
 
-            {storeUser?.squad_account_number && (
+            {employerProfile?.squad_account_number && (
               <View style={styles.detailRow}>
                 <View style={styles.detailIcon}>
                   <Ionicons name="wallet-outline" size={18} color={COLORS.primary} />
@@ -202,7 +208,7 @@ export default function EmployerProfile({ navigation }: any) {
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Squad Account</Text>
                   <Text style={styles.detailValue}>
-                    {storeUser.squad_bank_name} • {storeUser.squad_account_number}
+                    {employerProfile.squad_bank_name} • {employerProfile.squad_account_number}
                   </Text>
                 </View>
               </View>
