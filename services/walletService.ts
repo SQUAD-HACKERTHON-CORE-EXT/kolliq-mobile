@@ -17,10 +17,15 @@ const normalizeNipCode = (nip?: string) => {
 // Re-export so callers can normalise NIP before passing it to any API helper
 export { normalizeNipCode }
 
-export const getWallet = async () => {
-  const response: any = await apiClient.get(ENDPOINTS.WALLET)
-  console.log('💳 WALLET DATA:', JSON.stringify(response?.data || response, null, 2));
-  return response?.data || response;
+// apiClient response interceptor returns: `response.data?.data ?? response.data`
+// That is the single resolved data value — the wallet object itself.
+// Every wallet-service function returns that resolved value with no further unwrapping.
+export const getWallet = async (): Promise<any> => {
+  const data: any = await apiClient.get(ENDPOINTS.WALLET)
+  // Log ABSOLUTE final value — if account_number / balance appear here,
+  // the Wallet._COLLECTED const below sees them correctly.
+  console.log('💳 WALLET (resolved by apiClient):', JSON.stringify(data, null, 2));
+  return data;               // single-pass resolve — NO SECOND .data
 }
 
 export const waitForWallet = async (): Promise<any> => {
@@ -30,10 +35,12 @@ export const waitForWallet = async (): Promise<any> => {
 
     const poll = async () => {
       try {
-        const data = await getWallet()
-        if (data.wallet_ready) {
+        const data = await getWallet()  // flat wallet object
+        console.log(`⏳ waitForWallet attempt ${attempts + 1}: wallet_ready=${data?.wallet_ready}, balance=${data?.balance}`);
+        if (data?.wallet_ready) {
           resolve(data)
-        } else if (attempts >= maxAttempts) {
+        }
+        else if (attempts >= maxAttempts) {
           reject(new Error('Wallet setup is taking longer than expected. Please try again.'))
         } else {
           attempts++
@@ -54,21 +61,19 @@ export const waitForWallet = async (): Promise<any> => {
 }
 
 export const getBanks = async () => {
-  const response = await apiClient.get(ENDPOINTS.BANKS)
+  // apiClient returns one unwrap (response.data?.data ?? response.data)
+  const response: any = await apiClient.get(ENDPOINTS.BANKS)
+  console.log('🏦 BANKS (1st-unwrapped by apiClient):', JSON.stringify(response, null, 2));
 
-  // Normalize response shapes from backend. API may return:
-  // - { banks: [...] }
-  // - { data: [...] }
-  // - [...] (array)
-  const payload = response?.data ?? response;
-  const banks = payload?.banks ?? payload?.data ?? payload;
-
-  return banks as any;
+  // Backend may return directly as [...], or as { banks: [...] } / { data: [...] }
+  const list = response?.banks ?? response?.data ?? response;
+  return Array.isArray(list) ? list : [];
 }
 
 export const getBankAccount = async () => {
-  const response = await apiClient.get(ENDPOINTS.BANK_ACCOUNT)
-  return response as any
+  const data: any = await apiClient.get(ENDPOINTS.BANK_ACCOUNT)
+  console.log('🏦 BANK ACCOUNT (1st-unwrapped by apiClient):', JSON.stringify(data, null, 2));
+  return data;               // already fully unwrapped
 }
 
 export const verifyBankAccount = async (
@@ -123,6 +128,10 @@ export const requestPayout = async (amount: number, note?: string) => {
 }
 
 export const getTransactions = async () => {
-  const response = await apiClient.get(ENDPOINTS.TRANSACTIONS)
-  return response as any
+  const data: any = await apiClient.get(ENDPOINTS.TRANSACTIONS)
+  console.log('📋 TRANSACTIONS (1st-unwrapped by apiClient):', JSON.stringify(data, null, 2));
+
+  // Backend may return { transactions: [...] } or [...] directly
+  const txns = data?.transactions ?? data;
+  return Array.isArray(txns) ? txns : [];
 }

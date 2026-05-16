@@ -56,20 +56,34 @@ apiClient.interceptors.response.use(
     }
     return response.data?.data ?? response.data
   },
-  async (error) => {
+  async (error: any) => {
     const status = error?.response?.status
     const url = error?.config?.url ?? '(unknown-url)'
 
     console.log('apiClient response error:', {
       url,
       status,
-      details: JSON.stringify(error?.response?.data, null, 2), // ADDED: Expand the details fully
+      details: JSON.stringify(error?.response?.data, null, 2),
     })
 
-    // During this fix, do NOT clear tokens here; logout flow handles it explicitly.
-    return Promise.reject(
-      new Error(extractApiErrorMessage(error, 'Network error. Please check your connection.'))
-    )
+    // Reject with the raw axios error object (not `new Error(...)`).
+    //
+    // If we do `Promise.reject(new Error(extractApiErrorMessage(error)))`:
+    //   - The new Error has no .response property
+    //   - `handleApiError` receives: error?.response?.data → undefined
+    //   - `handleApiError` falls all the way to `error?.message = "[object Object]"` or fallback
+    //   - Key detail strings like '"nip_code" length must be 6' reach the formatter's
+    //     `error?.message` path (error.response → response → new Error(message) ❌)
+    //
+    // By rejecting with `error` itself:
+    //   - `handleApiError` receives: error?.response?.data = { detail: '"nip_code"...' }
+    //   - `handleApiError` hits `details?.detail` immediately ✓
+    //   - Downstream catch blocks see `error.response.data.detail`
+    //     and can branch on `'nip_code' in detail` ✓
+    //
+    // Token clearing is handled explicitly by services/authService.ts logout() —
+    // do NOT clear tokens here to avoid cascading 401 on other calls.
+    return Promise.reject(error)
   }
 )
 

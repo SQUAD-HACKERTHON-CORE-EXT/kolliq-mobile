@@ -45,20 +45,32 @@ export default function WalletScreen({ navigation }: any) {
       setWalletLoading(true);
       setTransactionsLoading(true);
 
-      const [walletData, txData, bankData] = await Promise.allSettled([
-        getWallet() as any,
-        getTransactions() as any,
-        getBankAccount() as any,
-      ]);
+      // Cast as any[] once: Promise.allSettled returns a discriminated
+      // union that confuses TS; we only need .status + .value access here.
+      const _s = (await Promise.allSettled([
+        getWallet(),
+        getTransactions(),
+        getBankAccount(),
+      ])) as any[];
 
-      if (walletData.status === 'fulfilled' && walletData.value) {
-        setWallet(walletData.value);
+      const [_w, _t, _b] = _s;
+
+      // [0] wallet  →  resolves to flat { account_number, balance, wallet_ready, ... }
+      if (_w.status === 'fulfilled' && _w.value) {
+        setWallet(_w.value);
       }
-      if (txData.status === 'fulfilled' && txData.value) {
-        setTransactions(txData.value.transactions || txData.value || []);
+
+      // [1] txs  →  flat any[] or { transactions: any[] }
+      if (_t.status === 'fulfilled' && _t.value) {
+        const txList = Array.isArray(_t.value) ? _t.value
+                     : Array.isArray(_t.value.transactions) ? _t.value.transactions
+                     : [];
+        setTransactions(txList);
       }
-      if (bankData.status === 'fulfilled' && bankData.value) {
-        setBankAccount(bankData.value?.bank_account ?? bankData.value?.data ?? bankData.value);
+
+      // [2] bank  →  flat { account_number, bank_name, ... } OR { data: { bank_account: {...} } }
+      if (_b.status === 'fulfilled' && _b.value) {
+        setBankAccount(_b.value.bank_account ?? _b.value.data ?? _b.value ?? null);
       }
     } catch (error: any) {
       setLoadError(getErrorMessage(error, 'Failed to load wallet data'));

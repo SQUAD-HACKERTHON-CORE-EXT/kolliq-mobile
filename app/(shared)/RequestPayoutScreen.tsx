@@ -54,7 +54,10 @@ export default function RequestPayoutScreen({ navigation }: any) {
         }
 
         if (bankData.status === 'fulfilled') {
-          const resolvedBank = bankData.value?.bank_account ?? bankData.value?.data ?? bankData.value;
+          // getBankAccount returns either a flat bank account object
+          //   { account_name, bank_name, account_number, ... }
+          // or a GET-based wrapper { data: { bank_account: {...} } }
+          const resolvedBank = bankData.value?.bank_account ?? bankData.value?.data ?? bankData.value ?? null;
           setBankAccount(resolvedBank);
         }
 
@@ -158,8 +161,14 @@ export default function RequestPayoutScreen({ navigation }: any) {
     } catch (error: any) {
       const message = error?.message ?? '';
       const lower = typeof message === 'string' ? message.toLowerCase() : '';
+      console.log('⚠️  handleLinkBank caught error:', {
+        message: message?.substring(0, 160),
+        hasNipCode: lower.includes('nip_code'),
+        nipArgument: typeof nip === 'string' ? nip.replace(/./g,'*') : String(nip ?? 'falsy'),
+      });
       // Re-open NIP modal if backend complains about nip_code OR if no NIP was supplied at all
       if (lower.includes('nip_code') || !nip) {
+        console.log('🔑  → re-opening NIP modal (lower.hasNipCode:', lower.includes('nip_code'), '!nip:', !nip, ')');
         setNipModalVisible(true);
         return;
       }

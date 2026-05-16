@@ -52,7 +52,7 @@ export default function DashboardScreen({ navigation }: any) {
 
       try {
         const w = await getWallet()
-        setWallet(w?.wallet ?? w)
+        setWallet(w)   // getWallet returns flat wallet object — no extra .wallet traversal
       } catch (e) {
         setWallet(null)
       } finally {
