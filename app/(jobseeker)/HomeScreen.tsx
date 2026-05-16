@@ -65,6 +65,7 @@ export default function HomeScreen({ navigation }: any) {
 
       if (walletData) setWallet(walletData)
       setJobsFeed(Array.isArray(jobsData) ? jobsData : [])
+      console.log('📋 Home load jobs sample:', (Array.isArray(jobsData) ? jobsData : []).slice(0,5).map(j => ({ id: j.id, title: j.title, skill_required: j.skill_required, skills: j.skills })))
       setMyJobs(Array.isArray(myJobsData) ? myJobsData : [])
       
       if (eligibilityData && eligibilityData.score !== undefined) {
@@ -80,6 +81,21 @@ export default function HomeScreen({ navigation }: any) {
   const displayJobs = jobs as any[];
   const eisScore = useAppStore((state) => state.eisScore);
   const firstName = displayUser?.full_name?.split(' ')[0] || 'there';
+
+  // Client-side skill matching: prioritize jobs matching user's skills and location
+  const userSkills = (displayUser?.skills || []).map((s: string) => String(s).toLowerCase());
+  const userCity = (displayUser?.location_city || '').toLowerCase();
+  
+  const matchedJobs = displayJobs.filter((job: any) => {
+    const jobSkills = Array.isArray(job.skills) ? job.skills.map((s: any) => String(s).toLowerCase()) : [String(job.skill_required ?? '').toLowerCase()];
+    const jobCity = (job.location_city || '').toLowerCase();
+    const hasSkillMatch = jobSkills.some((skill: string) => userSkills.includes(skill));
+    const hasCityMatch = userCity === jobCity || !userCity;
+    return hasSkillMatch && hasCityMatch;
+  });
+  
+  const unmatchedJobs = displayJobs.filter((job: any) => !matchedJobs.includes(job));
+  const sortedDisplayJobs = [...matchedJobs, ...unmatchedJobs];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -204,7 +220,7 @@ export default function HomeScreen({ navigation }: any) {
             onViewAll={() => navigation.navigate('JobsFeed')}
           />
 
-          {displayJobs.map((job) => {
+          {sortedDisplayJobs.map((job) => {
             const rawRating = job.employer_rating ?? 0
             const safeRating =
               typeof rawRating === 'number'

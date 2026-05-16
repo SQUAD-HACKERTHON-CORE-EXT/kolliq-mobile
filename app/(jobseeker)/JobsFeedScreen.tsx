@@ -35,6 +35,7 @@ export default function JobsFeedScreen({ navigation }: any) {
       setLoadError(null);
       setJobsLoading(true);
       const response = await getJobsFeedResponse();
+      // Use fresh API response directly – overwrites store to avoid stale cache
       setJobsFeed(Array.isArray(response.jobs) ? response.jobs : []);
       setFeedCount(response.count ?? 0);
       setFeedMessage(response.message ?? '');
@@ -45,6 +46,7 @@ export default function JobsFeedScreen({ navigation }: any) {
     }
   }, [setJobsFeed, setJobsLoading]);
 
+  // Re-fetch every time the tab is focused
   useFocusEffect(
     useCallback(() => {
       loadJobs();
@@ -61,6 +63,21 @@ export default function JobsFeedScreen({ navigation }: any) {
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(search));
   });
+
+  // Client-side skill matching: prioritize jobs matching user's skills and location
+  const userSkills = (user?.skills || []).map((s: string) => String(s).toLowerCase());
+  const userCity = (user?.location_city || '').toLowerCase();
+  
+  const matchedJobs = filteredJobs.filter((job: any) => {
+    const jobSkills = Array.isArray(job.skills) ? job.skills.map((s: any) => String(s).toLowerCase()) : [String(job.skill_required ?? '').toLowerCase()];
+    const jobCity = (job.location_city || '').toLowerCase();
+    const hasSkillMatch = jobSkills.some((skill: string) => userSkills.includes(skill));
+    const hasCityMatch = userCity === jobCity || !userCity;
+    return hasSkillMatch && hasCityMatch;
+  });
+  
+  const unmatchedJobs = filteredJobs.filter((job: any) => !matchedJobs.includes(job));
+  const sortedJobs = [...matchedJobs, ...unmatchedJobs];
 
   const emptyMessage = feedMessage || 'No matching jobs right now. Check back soon!';
 
@@ -113,7 +130,7 @@ export default function JobsFeedScreen({ navigation }: any) {
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
             </View>
-        ) : filteredJobs.length === 0 ? (
+        ) : sortedJobs.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={48} color={COLORS.textMuted} />
             <Text style={styles.emptyTitle}>{emptyMessage}</Text>
@@ -125,7 +142,7 @@ export default function JobsFeedScreen({ navigation }: any) {
             )}
           </View>
         ) : (
-          filteredJobs.map((job) => {
+          sortedJobs.map((job) => {
             const rawEmployerRating = job.employer_rating ?? 0
             const safeEmployerRating =
               typeof rawEmployerRating === 'number'

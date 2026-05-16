@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useAppStore } from '../../store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { formatCurrency } from '../../utils/formatCurrency';
+import * as SecureStore from 'expo-secure-store';
 
 export default function AcceptJobScreen() {
   const navigation = useNavigation<any>();
@@ -25,6 +27,21 @@ export default function AcceptJobScreen() {
   }
 
   const job = params.job || params;
+
+  const user = useAppStore.getState().user;
+  const [storedUserId, setStoredUserIdState] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    SecureStore.getItemAsync('user_id').then(setStoredUserIdState);
+  }, []);
+   const currentUserId = String(user?.id ?? storedUserId ?? '');
+  // If this job is the user's own posting (they are the employer), send them back to dashboard
+  const jobEmployerId = (() => {
+    if (job?.employerId) return String(job.employerId);
+    if (job?.employer_id) return String(job.employer_id);
+    if (typeof job?.employer === 'object' && job.employer) return String((job.employer as any)?.id ?? (job.employer as any)?.pk ?? '');
+    return String(job?.employer ?? '');
+  })();
+  const isOwnPosting = jobEmployerId !== '' && currentUserId !== '' && jobEmployerId === currentUserId;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -80,7 +97,13 @@ export default function AcceptJobScreen() {
       <View style={styles.bottomFixed}>
         <TouchableOpacity 
           style={styles.primaryButton} 
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => {
+            if (isOwnPosting) {
+              navigation.navigate('EmployerDashboard');
+            } else {
+              navigation.navigate('Home');
+            }
+          }}
         >
           <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
         </TouchableOpacity>

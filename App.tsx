@@ -56,6 +56,7 @@ import JobApplicantsScreen from './app/(employer)/JobApplicantsScreen';
 import EISScoreScreen from './app/(shared)/EISScoreScreen';
 import ChangePinScreen from './app/(shared)/ChangePinScreen';
 import TransferScreen from './app/(shared)/TransferScreen';
+import RequestPayoutScreen from './app/(shared)/RequestPayoutScreen';
 import { COLORS } from './constants';
 import { useAppStore } from './store/useAppStore';
 import { authService } from './services/auth';
@@ -186,6 +187,7 @@ export default function App() {
           <Stack.Screen name="EISScoreScreen" component={EISScoreScreen} />
           <Stack.Screen name="ChangePin" component={ChangePinScreen} />
           <Stack.Screen name="Transfer" component={TransferScreen} />
+          <Stack.Screen name="RequestPayout" component={RequestPayoutScreen} />
         </Stack.Navigator>
         <StatusBar style="dark" />
       </NavigationContainer>

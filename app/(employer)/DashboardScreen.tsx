@@ -31,10 +31,19 @@ export default function DashboardScreen({ navigation }: any) {
       setLoadingJobs(true)
       setLoadingWallet(true)
       try {
-        const myJobs = await getMyJobs()
-        console.log('📑 MY JOBS DATA ON DASHBOARD:', JSON.stringify(myJobs, null, 2));
-        setJobs(Array.isArray(myJobs) ? myJobs : []);
-      } catch (e) {
+         const myJobs = await getMyJobs()
+          console.log('📑 RAW MY JOBS COUNT:', myJobs.length, 'USER ID:', user?.id)
+          const allJobs = Array.isArray(myJobs) ? myJobs : [];
+          // Defensive filter: ensure only jobs that belong to current user are shown
+          // Handles: employer_id (number/string), employerId (string), employer (id or object)
+          const filtered = allJobs.filter((j: any) => {
+            const raw = j?.employer_id ?? j?.employerId ?? (typeof j?.employer === 'object' ? j?.employer?.id : j?.employer) ?? ''
+            const jobEmployerId = typeof raw === 'object' ? String(raw?.id ?? raw?.pk ?? raw?.user_id ?? '') : String(raw)
+            return jobEmployerId === String(user?.id ?? '')
+          });
+          console.log('📑 FILTERED JOBS COUNT:', filtered.length, '(filtered from', allJobs.length, 'total)');
+          setJobs(filtered);
+        } catch (e) {
         console.error('Error loading my jobs:', e);
         setJobs([])
       } finally {
@@ -91,6 +100,29 @@ export default function DashboardScreen({ navigation }: any) {
               Funds held securely in Squad escrow until job is confirmed complete
             </Text>
           </WalletCard>
+        </View>
+
+        {/* Active Postings Stats */}
+        <View style={styles.section}>
+          <View style={styles.statsGrid}>
+            <Card variant="elevated" style={styles.statCard}>
+              <View style={styles.statContent}>
+                <Text style={styles.statNumber}>{loadingJobs ? '—' : jobs.length}</Text>
+                <Text style={styles.statLabel}>Active Postings</Text>
+              </View>
+              <Ionicons name="briefcase-outline" size={24} color={COLORS.primary} style={{ marginLeft: 'auto' }} />
+            </Card>
+            
+            <Card variant="elevated" style={styles.statCard}>
+              <View style={styles.statContent}>
+                <Text style={styles.statNumber}>
+                  {loadingJobs ? '—' : jobs.filter((j: any) => j.status === 'open' || !j.status).length}
+                </Text>
+                <Text style={styles.statLabel}>Open Positions</Text>
+              </View>
+              <Ionicons name="checkmark-circle-outline" size={24} color={COLORS.secondary} style={{ marginLeft: 'auto' }} />
+            </Card>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -244,6 +276,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FONTS.family,
     color: COLORS.textSecondary,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  statCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+  },
+  statContent: {
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 28,
+    fontFamily: FONTS.weights.bold,
+    color: COLORS.text,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontFamily: FONTS.family,
+    color: COLORS.textMuted,
+    marginTop: 4,
   },
   boldText: {
     fontFamily: FONTS.weights.bold,

@@ -1,6 +1,22 @@
 import apiClient from './apiClient'
 import { ENDPOINTS } from '../constants/endpoints'
 
+// Keep this false so the full NIP never gets logged in normal usage.
+const TEMP_LOG_FULL_NIP = false
+
+const maskNip = (nip?: string) => {
+  if (!nip) return null
+  return nip.replace(/.(?=.{2})/g, '*')
+}
+
+const normalizeNipCode = (nip?: string) => {
+  const normalized = String(nip ?? '').replace(/\D/g, '').trim()
+  return normalized.length ? normalized : ''
+}
+
+// Re-export so callers can normalise NIP before passing it to any API helper
+export { normalizeNipCode }
+
 export const getWallet = async () => {
   const response: any = await apiClient.get(ENDPOINTS.WALLET)
   console.log('💳 WALLET DATA:', JSON.stringify(response?.data || response, null, 2));
@@ -39,7 +55,15 @@ export const waitForWallet = async (): Promise<any> => {
 
 export const getBanks = async () => {
   const response = await apiClient.get(ENDPOINTS.BANKS)
-  return response as any
+
+  // Normalize response shapes from backend. API may return:
+  // - { banks: [...] }
+  // - { data: [...] }
+  // - [...] (array)
+  const payload = response?.data ?? response;
+  const banks = payload?.banks ?? payload?.data ?? payload;
+
+  return banks as any;
 }
 
 export const getBankAccount = async () => {
@@ -49,12 +73,29 @@ export const getBankAccount = async () => {
 
 export const verifyBankAccount = async (
   bank_code: string,
-  account_number: string
+  account_number: string,
+  nip_code?: string
 ) => {
-  const response = await apiClient.post(ENDPOINTS.VERIFY_BANK, {
-    bank_code,
-    account_number,
-  })
+  const preNormalized = String(nip_code ?? '')
+
+  const normalizedNipCode = normalizeNipCode(nip_code)
+
+  if (normalizedNipCode && normalizedNipCode.length !== 6) {
+    throw new Error('NIP code must be 6 digits.')
+  }
+
+  const body: any = {
+    bank_code: String(bank_code),
+    account_number: String(account_number),
+    ...(normalizedNipCode ? { nip_code: normalizedNipCode } : {}),
+  }
+
+  console.log('📤 VERIFY BANK – full body:', JSON.stringify(body))
+  console.log('   nip raw→norm:', JSON.stringify(preNormalized), '→', JSON.stringify(normalizedNipCode),
+              '| len:', normalizedNipCode.length,
+              '| typeof:', typeof normalizedNipCode)
+
+  const response = await apiClient.post(ENDPOINTS.VERIFY_BANK, body)
   return response as any
 }
 
@@ -67,6 +108,17 @@ export const saveBankAccount = async (data: {
     ...data,
     confirm: true,
   })
+  return response as any
+}
+
+export const requestPayout = async (amount: number, note?: string) => {
+  const response = await apiClient.post(ENDPOINTS.REQUEST_PAYOUT, {
+    amount,
+    note,
+  })
+
+  console.log('💸 REQUEST PAYOUT RESPONSE:', JSON.stringify(response, null, 2))
+
   return response as any
 }
 

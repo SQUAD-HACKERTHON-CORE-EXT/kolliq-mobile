@@ -904,17 +904,19 @@ This opens Expo Metro Bundler. Choose your platform:
 - **`w`** - Web browser
 - **Scan QR code** - Expo Go app
 
-### **Production Build**
+### **APK Build**
 
 ```bash
 # EAS Build setup
 eas build --platform ios --auto-submit
-eas build --platform android
+eas build --platform android --profile apk
 
 # Or local build
 npx expo build:ios
 npx expo build:android
 ```
+
+The Android EAS profile is configured for APK output, so this is an installable test build and not a Play Store release.
 
 ### **Debugging**
 

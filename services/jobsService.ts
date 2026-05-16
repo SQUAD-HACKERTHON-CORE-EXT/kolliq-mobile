@@ -20,13 +20,19 @@ const normalizeJob = (job: any) => ({
   location_area: job?.location_area ?? job?.location ?? job?.city ?? 'Unknown location',
   distance: toNumber(job?.distance_km ?? job?.distance ?? 0) || undefined,
   distance_km: toNumber(job?.distance_km ?? job?.distance ?? 0),
-  employerId: String(job?.employer_id ?? job?.employerId ?? ''),
-  employerName: job?.employer_name ?? job?.employer ?? job?.business_name ?? 'Employer',
-  employer_name: job?.employer_name ?? job?.employer ?? job?.business_name ?? 'Employer',
+  // Normalize employer id/name: backend may return employer as id, string, or object
+  employerId: (() => {
+    const raw = job?.employer_id ?? job?.employerId ?? job?.employer;
+    if (raw == null) return '';
+    if (typeof raw === 'object') return String(raw.id ?? raw.pk ?? raw.user_id ?? '');
+    return String(raw);
+  })(),
+  employerName: job?.employer_name ?? (typeof job?.employer === 'object' ? (job.employer.business_name ?? job.employer.full_name) : job?.employer) ?? job?.business_name ?? 'Employer',
+  employer_name: job?.employer_name ?? (typeof job?.employer === 'object' ? (job.employer.business_name ?? job.employer.full_name) : job?.employer) ?? job?.business_name ?? 'Employer',
   employerRating: toNumber(job?.employer_rating ?? job?.rating ?? 0),
   employer_rating: toNumber(job?.employer_rating ?? job?.rating ?? 0),
-  skills: Array.isArray(job?.skills) ? job.skills : job?.skill_required ? [job.skill_required] : [],
-  skill_required: job?.skill_required ?? job?.skill ?? job?.category ?? '',
+  skills: (Array.isArray(job?.skills) ? job.skills : job?.skill_required ? [job.skill_required] : []).map((s: any) => typeof s === 'string' ? s.toLowerCase() : s),
+  skill_required: (job?.skill_required ?? job?.skill ?? job?.category ?? '') ? String(job?.skill_required ?? job?.skill ?? job?.category ?? '').toLowerCase() : '',
   languages: Array.isArray(job?.languages) ? job.languages : undefined,
   requiredAvailability: job?.requiredAvailability ?? job?.required_availability,
   workers_needed: toNumber(job?.workers_needed ?? job?.workersNeeded ?? 1),
@@ -170,7 +176,13 @@ export const rateJob = async (data: {
   stars: number
   comment?: string
 }) => {
-  const response = await apiClient.post(ENDPOINTS.RATE_JOB, data)
+  const payload = {
+    to_user: data.to_user_id,
+    job: data.job_id,
+    stars: data.stars,
+    comment: data.comment || ''
+  }
+  const response = await apiClient.post(ENDPOINTS.RATE_JOB, payload)
   return response
 }
 

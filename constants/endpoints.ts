@@ -20,6 +20,7 @@ export const ENDPOINTS = {
   BANK_ACCOUNT: '/api/wallets/bank-account/',
   VERIFY_BANK: '/api/wallets/bank-account/verify/',
   SAVE_BANK: '/api/wallets/bank-account/save/',
+  REQUEST_PAYOUT: '/api/wallets/request-payout/',
   
   // Jobs - Django via middleware
   JOBS_FEED: '/api/jobs/feed/',

@@ -71,6 +71,7 @@ export default function JobApplicantsScreen() {
         <Text style={styles.jobStats}>
           {Number(job?.workers_needed || 0)} worker{Number(job?.workers_needed) === 1 ? '' : 's'} needed • {job?.applications_count || 0} applied
         </Text>
+        <Text style={styles.jobHint}>Review who applied, then hire from this list without leaving the job details flow.</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -111,6 +112,14 @@ const ApplicantCard = ({ applicant }: any) => (
           <Text style={styles.ratingText}>{applicant.avg_rating || '4.8'}</Text>
           <Text style={styles.matchScore}> • {applicant.match_score || 95}% match</Text>
         </View>
+        <Text style={styles.applicantMeta} numberOfLines={1}>
+          {applicant.phone || applicant.phone_number || 'Phone hidden'}
+        </Text>
+        {!!(applicant.skills?.length || applicant.skill_tags?.length) && (
+          <Text style={styles.applicantMeta} numberOfLines={1}>
+            {(applicant.skills || applicant.skill_tags).join(' • ')}
+          </Text>
+        )}
       </View>
     </View>
     <TouchableOpacity style={styles.hireButton}>
@@ -162,6 +171,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     marginTop: 4,
+  },
+  jobHint: {
+    fontFamily: FONTS.family,
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginTop: 8,
+    lineHeight: 18,
   },
   scrollContent: {
     paddingHorizontal: LAYOUT.paddingHorizontal,
@@ -257,6 +273,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.family,
     fontSize: 13,
     color: COLORS.primary,
+  },
+  applicantMeta: {
+    fontFamily: FONTS.family,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+    maxWidth: 220,
   },
   hireButton: {
     backgroundColor: '#EAF5EF',

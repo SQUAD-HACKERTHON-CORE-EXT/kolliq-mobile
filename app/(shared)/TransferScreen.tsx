@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert, Modal, FlatList } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
@@ -28,6 +28,28 @@ export default function TransferScreen({ navigation }: any) {
     Array<{ bank_code?: string; code?: string; bankCode?: string; name?: string; bank_name?: string; bankName?: string }>
   >([]);
 
+  const [bankPickerVisible, setBankPickerVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredBanks, setFilteredBanks] = useState(banks);
+  const [nipModalVisible, setNipModalVisible] = useState(false);
+  const [nipCode, setNipCode] = useState('');
+  const [nipSubmitting, setNipSubmitting] = useState(false);
+
+  useEffect(() => {
+    const q = String(searchQuery ?? '').trim().toLowerCase();
+    if (!q) {
+      setFilteredBanks(banks);
+      return;
+    }
+
+    const next = banks.filter((b) => {
+      const name = String(b.name ?? b.bank_name ?? b.bankName ?? '').toLowerCase();
+      const code = String(b.bank_code ?? b.code ?? b.bankCode ?? '').toLowerCase();
+      return name.includes(q) || code.includes(q);
+    });
+    setFilteredBanks(next);
+  }, [searchQuery, banks]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -36,8 +58,19 @@ export default function TransferScreen({ navigation }: any) {
         setBanksError(null);
         setBanksLoading(true);
 
+
         const banksData: any = await getBanks();
-        const banks = Array.isArray(banksData?.data) ? banksData.data : Array.isArray(banksData) ? banksData : [];
+        const banks = Array.isArray(banksData)
+          ? banksData
+          : Array.isArray(banksData?.data)
+          ? banksData.data
+          : Array.isArray(banksData?.banks)
+          ? banksData.banks
+          : [];
+
+        // Store normalized banks for the selector
+        setBanks(banks);
+        setFilteredBanks(banks);
 
         if (cancelled) return;
 
@@ -123,7 +156,14 @@ export default function TransferScreen({ navigation }: any) {
         setRecipientName(String(apiName));
         setStep(3);
       } catch (e: any) {
-        Alert.alert('Verification failed', e?.message ?? 'Please check the account number and try again.');
+        const msg = e?.message ?? '';
+
+        if (typeof msg === 'string' && msg.toLowerCase().includes('nip_code')) {
+          setNipModalVisible(true);
+          return;
+        }
+
+        Alert.alert('Verification failed', msg || 'Please check the account number and try again.');
       } finally {
         setLoading(false);
       }
@@ -203,23 +243,9 @@ export default function TransferScreen({ navigation }: any) {
                 style={styles.bankSelector}
                 onPress={() => {
                   if (!banks.length) return;
-
-                  const currentCode = bankCode ?? '';
-                  const currentIndex = banks.findIndex((b) => {
-                    const code = String(b.bank_code ?? b.code ?? b.bankCode ?? '');
-                    return code === currentCode;
-                  });
-
-                  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % banks.length : 0;
-                  const nextBank = banks[nextIndex];
-
-                  const nextCode = String(nextBank?.bank_code ?? nextBank?.code ?? nextBank?.bankCode ?? '');
-                  const nextName = String(
-                    nextBank?.name ?? nextBank?.bank_name ?? nextBank?.bankName ?? 'Bank'
-                  );
-
-                  setBankCode(nextCode || null);
-                  setBankName(nextName);
+                  setSearchQuery('');
+                  setFilteredBanks(banks);
+                  setBankPickerVisible(true);
                 }}
               >
                 <Text style={styles.bankSelectorText}>{bankName}</Text>
@@ -227,6 +253,56 @@ export default function TransferScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Bank picker modal */}
+          <Modal visible={bankPickerVisible} animationType="slide" transparent>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalPanel}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                  <TextInput
+                    placeholder="Search bank by name or code"
+                    style={styles.searchInput}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoFocus
+                  />
+                  <TouchableOpacity onPress={() => setBankPickerVisible(false)} style={{ marginLeft: 8 }}>
+                    <Text style={{ color: COLORS.primary }}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {banksLoading ? (
+                  <ActivityIndicator size="large" color={COLORS.primary} />
+                ) : (
+                  <FlatList
+                    data={filteredBanks}
+                    keyExtractor={(item, idx) => String(item?.bank_code ?? item?.code ?? item?.bankCode ?? idx)}
+                    keyboardShouldPersistTaps="handled"
+                    style={{ maxHeight: 320 }}
+                    renderItem={({ item }) => {
+                      const name = String(item.name ?? item.bank_name ?? item.bankName ?? 'Bank');
+                      const code = String(item.bank_code ?? item.code ?? item.bankCode ?? '');
+                      return (
+                        <TouchableOpacity
+                          style={styles.bankRow}
+                          onPress={() => {
+                            const nextCode = code;
+                            const nextName = name;
+                            setBankCode(nextCode || null);
+                            setBankName(nextName);
+                            setBankPickerVisible(false);
+                            setSearchQuery('');
+                          }}
+                        >
+                          <Text style={styles.bankRowName}>{name}</Text>
+                        </TouchableOpacity>
+                      );
+                    }}
+                  />
+                )}
+              </View>
+            </View>
+          </Modal>
 
           {step === 3 && (
             <View style={styles.stepView}>
@@ -257,6 +333,70 @@ export default function TransferScreen({ navigation }: any) {
           )}
 
         </ScrollView>
+
+        {/* NIP modal for second-factor verification */}
+        <Modal visible={nipModalVisible} animationType="fade" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalPanel, { padding: 20 }]}> 
+              <Text style={{ fontSize: 16, fontFamily: FONTS.weights.bold, color: COLORS.text, marginBottom: 8 }}>Enter 6-digit NIP code</Text>
+              <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 12 }}>We need a 6-digit NIP to verify this account.</Text>
+              <TextInput
+                keyboardType="numeric"
+                maxLength={6}
+                style={[styles.nipInput, { marginBottom: 12 }]}
+                value={nipCode}
+                  onChangeText={(text) => setNipCode(text.replace(/\D/g, ''))}
+                placeholder="e.g. 123456"
+                placeholderTextColor={COLORS.textMuted}
+              />
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+                <TouchableOpacity onPress={() => { setNipModalVisible(false); setNipCode(''); }} style={{ padding: 10 }}>
+                  <Text style={{ color: COLORS.textSecondary }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (!nipCode || nipCode.trim().length !== 6) {
+                      Alert.alert('Invalid code', 'NIP code must be 6 digits.');
+                      return;
+                    }
+                    try {
+                      setNipSubmitting(true);
+                      setLoading(true);
+                      const res: any = await verifyBankAccount(bankCode!, accountNumber, nipCode.trim());
+
+                      const apiName =
+                        res?.account_name ??
+                        res?.data?.account_name ??
+                        res?.data?.accountName ??
+                        res?.data?.name ??
+                        res?.name ??
+                        null;
+
+                      if (!apiName) {
+                        Alert.alert('Verification failed', 'Could not verify account with provided NIP.');
+                        return;
+                      }
+
+                      setRecipientName(String(apiName));
+                      setNipModalVisible(false);
+                      setNipCode('');
+                      setStep(3);
+                    } catch (err: any) {
+                      Alert.alert('Verification failed', err?.message ?? 'Please try again.');
+                    } finally {
+                      setNipSubmitting(false);
+                      setLoading(false);
+                    }
+                  }}
+                  style={[styles.primaryButton, { paddingHorizontal: 16, height: 44, alignSelf: 'flex-end' }]}
+                >
+                  {nipSubmitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.primaryButtonText}>Submit</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         <View style={styles.footer}>
           <TouchableOpacity 
@@ -307,6 +447,48 @@ const styles = StyleSheet.create({
   securityNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   securityText: { fontSize: 13, fontFamily: FONTS.weights.medium, color: COLORS.textSecondary },
   footer: { padding: LAYOUT.paddingHorizontal, paddingBottom: 40 },
-  primaryButton: { backgroundColor: COLORS.primary, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  primaryButtonText: { fontSize: 16, fontFamily: FONTS.weights.bold, color: COLORS.white },
-});
+   primaryButton: { backgroundColor: COLORS.primary, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+   primaryButtonText: { fontSize: 16, fontFamily: FONTS.weights.bold, color: COLORS.white },
+
+  // Modal styles – kept inside StyleSheet.create so TS/typechecker recognises them
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalPanel: {
+    backgroundColor: COLORS.background,
+    padding: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '70%',
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    height: 48,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  nipInput: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    height: 56,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    fontSize: 20,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  bankRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  bankRowName: { fontSize: 16, color: COLORS.text, fontFamily: FONTS.weights.medium },
+ });

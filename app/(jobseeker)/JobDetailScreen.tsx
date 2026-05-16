@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, StatusBar } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -15,6 +16,22 @@ export default function JobDetailScreen() {
   const route = useRoute<any>();
   const params = route.params || {};
   const user = useAppStore((state) => state.user);
+  const [storedUserId, setStoredUserId] = React.useState<string | null>(null);
+  const [storedRole, setStoredRole] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const loadStored = async () => {
+      try {
+        const sid = await SecureStore.getItemAsync('user_id');
+        const role = await SecureStore.getItemAsync('role');
+        setStoredUserId(sid ?? null);
+        setStoredRole(role ?? null);
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadStored();
+  }, []);
   
   const [job, setJob] = useState<any>(params.job || params);
   const [loading, setLoading] = useState(true);
@@ -56,10 +73,25 @@ export default function JobDetailScreen() {
     );
   }
 
-  // Check if current user is the employer of this job
-  const isEmployer = user?.id === (job.employerId || job.employer_id || job.employer?.id || job.employer);
+  // Check if current user is the employer of this job (coerce types safely)
+  const _employerIdRaw = job?.employerId ?? job?.employer_id ?? job?.employer?.id ?? job?.employer;
+  const currentUserId = user?.id ?? storedUserId ?? '';
+  const currentRole = user?.role ?? storedRole ?? '';
+  // Parenthesise: match only if IDs match OR (role is employer AND still IDs match)
+  const idMatch = String(currentUserId ?? '') === String(_employerIdRaw ?? '');
+  const isEmployer = idMatch || (currentRole === 'employer' && idMatch);
+
+  // Guard: Employers must never reach AcceptJob/AcceptGig
+  React.useEffect(() => {
+    if (isEmployer) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      console.warn('[JobDetail] Employer blocked from AcceptGig route — employerId:', String(_employerIdRaw ?? ''), 'userId:', currentUserId);
+    }
+  }, [isEmployer, _employerIdRaw, currentUserId]);
 
   const handleAcceptGig = () => {
+    // Double-check guard in case component state is stale
+    if (isEmployer) return;
     navigation.navigate('AcceptJob', { job });
   };
 
@@ -201,9 +233,9 @@ export default function JobDetailScreen() {
         {isEmployer ? (
           <View style={styles.employerActions}>
             <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: COLORS.primary }]} 
+              style={[styles.actionButton, { backgroundColor: COLORS.primary, width: '100%' }]} 
               activeOpacity={0.8}
-              onPress={() => navigation.navigate('JobApplicants', { jobId: job.id || job.job_id })}
+              onPress={() => navigation.navigate('JobApplicants', { jobId: job.id || job.job_id, job })}
             >
               <Text style={styles.actionButtonText}>View Applicants</Text>
             </TouchableOpacity>

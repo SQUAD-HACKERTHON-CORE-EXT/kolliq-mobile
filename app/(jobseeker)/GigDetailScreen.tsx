@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { acceptJob } from '../../services/jobsService';
+import { useAppStore } from '../../store/useAppStore';
 import { getErrorMessage } from '../../utils/handleApiError';
 
 export default function GigDetailScreen({ navigation }: any) {
@@ -18,6 +19,8 @@ export default function GigDetailScreen({ navigation }: any) {
   const durationValue = gig.duration_hours ?? gig.duration ?? '—';
   const [accepting, setAccepting] = useState(false);
 
+  const user = useAppStore((s) => s.user);
+
   const gigStatus: string = gig?.status ?? '';
   const isAlreadyAccepted =
     ['accepted', 'ongoing', 'active', 'in_progress'].includes(gigStatus) ||
@@ -27,6 +30,12 @@ export default function GigDetailScreen({ navigation }: any) {
 
   const handleAcceptGig = async () => {
     if (!canAcceptGig) return;
+
+      // Prevent employers or unauthenticated users from accepting gigs
+      if (!user?.role || user.role !== 'worker') {
+        Alert.alert('Not allowed', 'Only jobseekers can accept gigs.');
+        return;
+      }
 
     const jobId = gig.id || gig.job_id;
     if (!jobId) {
@@ -161,7 +170,7 @@ export default function GigDetailScreen({ navigation }: any) {
           variant="primary"
           size="lg"
           style={styles.primaryBtn}
-          disabled={accepting}
+          disabled={accepting || !(user?.role === 'worker')}
         />
       </View>
     </SafeAreaView>

@@ -6,7 +6,7 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS, LAYOUT } from '../../constants';
 import { BottomNav } from '../../components/ui/DashboardLayout';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useAppStore } from '../../store/useAppStore';
-import { getWallet, getTransactions } from '../../services/walletService';
+import { getWallet, getTransactions, getBankAccount } from '../../services/walletService';
 import { getErrorMessage } from '../../utils/handleApiError';
 
 const WALLET_TABS = ['Overview', 'Transactions', 'Savings'];
@@ -17,6 +17,7 @@ export default function WalletScreen({ navigation }: any) {
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [copied, setCopied] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [bankAccount, setBankAccount] = useState<any>(null);
 
   const wallet = useAppStore((state) => state.wallet);
   const transactions = useAppStore((state) => state.transactions);
@@ -44,16 +45,20 @@ export default function WalletScreen({ navigation }: any) {
       setWalletLoading(true);
       setTransactionsLoading(true);
 
-      const [walletData, txData] = await Promise.all([
+      const [walletData, txData, bankData] = await Promise.allSettled([
         getWallet() as any,
         getTransactions() as any,
+        getBankAccount() as any,
       ]);
 
-      if (walletData) {
-        setWallet(walletData);
+      if (walletData.status === 'fulfilled' && walletData.value) {
+        setWallet(walletData.value);
       }
-      if (txData) {
-        setTransactions(txData.transactions || txData || []);
+      if (txData.status === 'fulfilled' && txData.value) {
+        setTransactions(txData.value.transactions || txData.value || []);
+      }
+      if (bankData.status === 'fulfilled' && bankData.value) {
+        setBankAccount(bankData.value?.bank_account ?? bankData.value?.data ?? bankData.value);
       }
     } catch (error: any) {
       setLoadError(getErrorMessage(error, 'Failed to load wallet data'));
@@ -167,13 +172,23 @@ export default function WalletScreen({ navigation }: any) {
               <View style={styles.accountInfoLeft}>
                 <Ionicons name="card-outline" size={16} color="rgba(255,255,255,0.7)" />
                 <Text style={styles.accountNumber}>{displayWallet?.account_number || '—'}</Text>
-                <Text style={styles.bankName}>• {displayWallet?.bank_name || '—'}</Text>
+                <Text style={styles.bankName}>• {bankAccount?.bank_name ?? bankAccount?.bankName ?? 'No bank linked yet'}</Text>
               </View>
               <View style={styles.copyBadge}>
                 <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={14} color={COLORS.primary} />
                 <Text style={styles.copyText}>{copied ? 'Copied!' : 'Copy'}</Text>
               </View>
             </TouchableOpacity>
+
+            <View style={styles.withdrawalBankCard}>
+              <View style={styles.withdrawalBankHeader}>
+                <Ionicons name="cash-outline" size={18} color={COLORS.primary} />
+                <Text style={styles.withdrawalBankTitle}>Withdrawal Bank</Text>
+              </View>
+              <Text style={styles.withdrawalBankValue}>{bankAccount?.bank_name ?? bankAccount?.bankName ?? 'No bank linked yet'}</Text>
+              <Text style={styles.withdrawalBankMeta}>{bankAccount?.account_name ?? bankAccount?.accountName ?? 'Add a bank account to request payouts'}</Text>
+              <Text style={styles.withdrawalBankMeta}>{bankAccount?.account_number ?? bankAccount?.accountNumber ?? '—'}</Text>
+            </View>
 
             <View style={{ marginTop: 8, marginBottom: 20 }}>
               <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.weights.semibold, textTransform: 'uppercase' }}>
@@ -218,13 +233,13 @@ export default function WalletScreen({ navigation }: any) {
 
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={() => {}}
+                onPress={() => navigation.navigate('RequestPayout')}
                 activeOpacity={0.8}
               >
                 <View style={styles.actionIconCircle}>
-                  <Ionicons name="receipt-outline" size={20} color={COLORS.primary} />
+                  <Ionicons name="download-outline" size={20} color={COLORS.primary} />
                 </View>
-                <Text style={styles.actionLabel}>Request</Text>
+                <Text style={styles.actionLabel}>Payout</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -819,5 +834,37 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontFamily: FONTS.weights.semibold,
     fontSize: 14,
+  },
+  withdrawalBankCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  withdrawalBankHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  withdrawalBankTitle: {
+    fontSize: 13,
+    fontFamily: FONTS.weights.bold,
+    color: COLORS.text,
+  },
+  withdrawalBankValue: {
+    fontSize: 15,
+    fontFamily: FONTS.weights.bold,
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  withdrawalBankMeta: {
+    fontSize: 13,
+    fontFamily: FONTS.family,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
 });

@@ -143,6 +143,73 @@ export default function EmployerProfile({ navigation }: any) {
           </View>
         </Card>
 
+        {/* Business Details */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Business Details</Text>
+          
+          <Card variant="outlined" style={styles.detailsCard}>
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="business-outline" size={18} color={COLORS.primary} />
+              </View>
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Business Name</Text>
+                <Text style={styles.detailValue}>{storeUser?.business_name || 'N/A'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="location-outline" size={18} color={COLORS.primary} />
+              </View>
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Location</Text>
+                <Text style={styles.detailValue}>
+                  {storeUser?.location_area && storeUser?.location_city
+                    ? `${storeUser.location_area}, ${storeUser.location_city}`
+                    : storeUser?.location_city || storeUser?.location_area || 'N/A'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="call-outline" size={18} color={COLORS.primary} />
+              </View>
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Phone Number</Text>
+                <Text style={styles.detailValue}>{storeUser?.phone || 'N/A'}</Text>
+              </View>
+            </View>
+
+            {storeUser?.is_verified && (
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.primary} />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Verification Status</Text>
+                  <Text style={[styles.detailValue, { color: COLORS.success }]}>Verified</Text>
+                </View>
+              </View>
+            )}
+
+            {storeUser?.squad_account_number && (
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="wallet-outline" size={18} color={COLORS.primary} />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Squad Account</Text>
+                  <Text style={styles.detailValue}>
+                    {storeUser.squad_bank_name} • {storeUser.squad_account_number}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </Card>
+        </View>
+
         {/* Trust Factors */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Profile Strength</Text>
@@ -516,5 +583,42 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.family,
     color: COLORS.textMuted,
     marginTop: 2,
+  },
+  detailsCard: {
+    paddingVertical: 0,
+    marginBottom: SPACING.lg,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  detailRowLast: {
+    borderBottomWidth: 0,
+  },
+  detailIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: 'rgba(27, 77, 62, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.lg,
+  },
+  detailContent: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 13,
+    fontFamily: FONTS.family,
+    color: COLORS.textMuted,
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 15,
+    fontFamily: FONTS.weights.bold,
+    color: COLORS.text,
   },
 });
