@@ -60,7 +60,7 @@ const SuccessScreen = () => {
         {/* Heading */}
         <Text style={styles.heading}>Wallet Created!</Text>
         <Text style={styles.subtext}>
-          Your Kolliq wallet and Squad virtual account have been activated
+          Your Kolliq wallet and virtual account have been activated
         </Text>
 
         {/* Account Details Card */}

@@ -100,13 +100,13 @@ const persistAuthSession = async (data: AuthResponse) => {
 
 class AuthService {
   /**
-   * Request OTP for phone number
+   * Request OTP for email address
    * POST /auth/request-otp
    */
-  async requestOtp(phone: string): Promise<RequestOtpResponse> {
-    console.log('🔑 Requesting OTP from Node:', NODE_BASE_URL + ENDPOINTS.REQUEST_OTP);
+  async requestOtp(email: string): Promise<RequestOtpResponse> {
+    console.log('🔑 Requesting OTP from Node for email:', email);
     const response = await nodeApi.post<RequestOtpResponse>(ENDPOINTS.REQUEST_OTP, {
-      phone: this.normalizePhoneNumber(phone),
+      email: email.trim().toLowerCase(),
     });
     return response.data;
   }
@@ -115,10 +115,10 @@ class AuthService {
    * Verify OTP
    * POST /auth/verify-otp
    */
-  async verifyOtp(phone: string, otp: string): Promise<VerifyOtpResponse> {
-    console.log('🔑 Verifying OTP at Node:', NODE_BASE_URL + ENDPOINTS.VERIFY_OTP);
+  async verifyOtp(email: string, otp: string): Promise<VerifyOtpResponse> {
+    console.log('🔑 Verifying OTP at Node for email:', email);
     const response = await nodeApi.post<VerifyOtpResponse>(ENDPOINTS.VERIFY_OTP, {
-      phone: this.normalizePhoneNumber(phone),
+      email: email.trim().toLowerCase(),
       otp,
     });
     return response.data;
@@ -126,7 +126,7 @@ class AuthService {
 
   /**
    * Complete profile / Register user
-    * POST /api/users/auth/register/
+   * POST /api/users/auth/register/
    */
   async register(
     data: CompleteProfileRequest
@@ -135,7 +135,6 @@ class AuthService {
       ENDPOINTS.REGISTER,
       {
         ...data,
-        phone: this.normalizePhoneNumber(data.phone),
         role: data.role === 'trader' ? 'worker' : data.role,
       }
     );
@@ -161,12 +160,12 @@ class AuthService {
   }
 
   /**
-   * Login with phone and PIN
-    * POST /api/users/auth/login/
+   * Login with email and PIN
+   * POST /api/users/auth/login/
    */
-  async login(phone: string, pin: string): Promise<AuthResponse> {
+  async login(email: string, pin: string): Promise<AuthResponse> {
       const response = await api.post<AuthResponse>(ENDPOINTS.LOGIN, {
-        phone: this.normalizePhoneNumber(phone),
+        email: email.trim().toLowerCase(),
         pin,
       });
 

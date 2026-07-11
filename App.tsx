@@ -13,7 +13,7 @@ import {
 import * as SecureStore from 'expo-secure-store';
 
 import WelcomeScreen from './app/(auth)/WelcomeScreen';
-import PhoneEntryScreen from './app/(auth)/PhoneEntryScreen';
+import EmailEntryScreen from './app/(auth)/EmailEntryScreen';
 import CreatePinScreen from './app/(auth)/CreatePinScreen';
 import LoginScreen from './app/(auth)/LoginScreen';
 import OTPVerificationScreen from './app/(auth)/OTPVerificationScreen';
@@ -140,7 +140,7 @@ export default function App() {
         >
           {/* Auth Flow - Registration */}
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          <Stack.Screen name="PhoneEntry" component={PhoneEntryScreen} />
+          <Stack.Screen name="EmailEntry" component={EmailEntryScreen} />
           <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
           <Stack.Screen name="CreatePin" component={CreatePinScreen} />
           <Stack.Screen name="PersonalDetails" component={PersonalDetailsScreen} />

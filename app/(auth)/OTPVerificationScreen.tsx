@@ -26,7 +26,7 @@ const OTPVerificationScreen = () => {
   const otpInputRef = useRef<TextInput>(null)
   const navigation = useNavigation<any>()
   const insets = useSafeAreaInsets()
-  const phone = useAppStore((state) => state.onboardingData.phone)
+  const email = useAppStore((state) => state.onboardingData.email)
   const setOnboardingData = useAppStore((state) => state.setOnboardingData)
 
   const isComplete = otp.length === 6
@@ -40,13 +40,13 @@ const OTPVerificationScreen = () => {
   }
 
   const handleVerifyOtp = async () => {
-    if (!isComplete || !phone) return
+    if (!isComplete || !email) return
 
     setLoading(true)
     setError('')
 
     try {
-      await authService.verifyOtp(phone, otp)
+      await authService.verifyOtp(email, otp)
       // Success - navigate to PIN creation
       navigation.navigate('CreatePin')
     } catch (err: any) {
@@ -100,7 +100,7 @@ const OTPVerificationScreen = () => {
           <View style={styles.content}>
             <Text style={styles.heading}>Enter verification code</Text>
             <Text style={styles.subtext}>
-              We sent a 6-digit code to {phone}. Enter it below.
+              We sent a 6-digit code to {email}. Enter it below.
             </Text>
 
             {/* OTP Input Boxes */}

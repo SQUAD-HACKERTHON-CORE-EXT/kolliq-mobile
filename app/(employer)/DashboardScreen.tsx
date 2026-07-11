@@ -105,7 +105,7 @@ export default function DashboardScreen({ navigation }: any) {
             onSecondaryAction={() => { console.log('Dashboard: Escrow history pressed'); navigation.navigate('WalletScreen') }}
           >
             <Text style={styles.escrowDisclaimer}>
-              Funds held securely in Squad escrow until job is confirmed complete
+              Funds held securely in escrow until job is confirmed complete
             </Text>
           </WalletCard>
         </View>

@@ -1,2 +1,2 @@
-export const BASE_URL = 'https://django-core.up.railway.app'
-export const NODE_BASE_URL = 'https://node-middleware.up.railway.app'
+export const BASE_URL = 'https://buddy-species-delicious.ngrok-free.dev';
+export const NODE_BASE_URL = "https://bluish-monsoon-timid.ngrok-free.dev";

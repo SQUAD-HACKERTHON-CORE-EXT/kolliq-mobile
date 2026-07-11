@@ -16,7 +16,7 @@ const WalletLoadingScreen = () => {
 
   const steps = [
     { text: 'Securing your identity', icon: 'shield-outline' },
-    { text: 'Creating your Squad virtual account', icon: 'wallet-outline' },
+    { text: 'Creating your secure virtual wallet', icon: 'wallet-outline' },
     { text: 'Activating your financial profile', icon: 'bar-chart-outline' },
   ];
 
@@ -27,7 +27,7 @@ const WalletLoadingScreen = () => {
       setStep(3);
       updateUser({
         walletAccountNumber: '0123456789',
-        walletBankName: 'Squad Bank (GTCO)',
+        walletBankName: 'Kolliq Wallet Bank',
         economicIdentityScore: 72,
         walletBalance: 0,
       });
@@ -64,14 +64,14 @@ const WalletLoadingScreen = () => {
             </View>
             <Text style={styles.successTitle}>Account Active!</Text>
             <Text style={styles.successSubtitle}>
-              Your Kolliq wallet is live and ready. Your Squad account number is active. Share it with anyone to receive payments instantly.
+              Your Kolliq wallet is live and ready. Your virtual account number is active. Share it with anyone to receive payments instantly.
             </Text>
           </View>
 
-          {/* Squad Wallet Card */}
+          {/* Wallet Card */}
           <View style={styles.walletCard}>
             <View style={styles.walletHeader}>
-              <Text style={styles.walletLabel}>YOUR SQUAD WALLET</Text>
+              <Text style={styles.walletLabel}>YOUR SECURE WALLET</Text>
               <View style={styles.activeBadge}>
                 <View style={styles.activeDot} />
                 <Text style={styles.activeText}>Active</Text>
@@ -80,8 +80,7 @@ const WalletLoadingScreen = () => {
             
             <View style={styles.walletMain}>
               <Text style={styles.accountNumber}>0123 456 789</Text>
-              <Text style={styles.bankName}>Squad Bank (GTCO)</Text>
-              <Text style={styles.poweredBy}>Powered by Squad</Text>
+              <Text style={styles.bankName}>Kolliq Wallet Bank</Text>
             </View>
 
             <View style={styles.walletFooter}>
@@ -113,7 +112,7 @@ const WalletLoadingScreen = () => {
                 <Feather name="shield" size={18} color={COLORS.primary} />
               </View>
               <Text style={styles.infoText}>
-                {user?.role === 'employer' ? 'Enjoy secure escrow payments powered by Squad.' :
+                {user?.role === 'employer' ? 'Enjoy secure escrow payments powered by Kolliq.' :
                  user?.role === 'trader' ? 'Transact regularly to grow your Economic Identity Score.' :
                  'Complete gigs to grow your Economic Identity Score.'}
               </Text>

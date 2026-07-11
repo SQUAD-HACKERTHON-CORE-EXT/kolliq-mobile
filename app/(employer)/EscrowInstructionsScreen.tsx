@@ -156,7 +156,7 @@ export default function EscrowInstructionsScreen() {
 
         <View style={styles.noticeBox}>
           <Text style={styles.noticeText}>
-            Include the reference code in your payment narration. Your job goes live automatically when payment is confirmed by Squad.
+            Include the reference code in your payment narration. Your job goes live automatically when payment is confirmed.
           </Text>
           {instructions.bank === 'Bank name not provided' && (
             <Text style={styles.noticeText}>

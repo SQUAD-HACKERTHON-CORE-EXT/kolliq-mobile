@@ -11,7 +11,7 @@ const ROLES = [
   {
     id: 'jobseeker' as UserRole,
     title: 'I am looking for work',
-    description: 'Find verified gigs, get paid directly to your Squad wallet, and build your Economic Identity Score.',
+    description: 'Find verified gigs, get paid directly to your secure wallet, and build your Economic Identity Score.',
     icon: 'briefcase-outline',
   },
   {

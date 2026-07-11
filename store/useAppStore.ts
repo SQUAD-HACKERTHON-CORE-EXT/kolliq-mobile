@@ -87,6 +87,7 @@ interface Savings {
 interface OnboardingData {
   // All users
   phone?: string
+  email?: string
   pin?: string
   full_name?: string
   role?: 'worker' | 'employer' | 'trader'

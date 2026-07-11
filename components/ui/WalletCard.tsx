@@ -19,7 +19,7 @@ interface WalletCardProps {
 }
 
 export const WalletCard: React.FC<WalletCardProps> = ({
-  title = 'Squad Wallet Balance',
+  title = 'Wallet Balance',
   balance,
   score,
   primaryActionTitle = 'Add Money',

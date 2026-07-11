@@ -81,17 +81,10 @@ const WelcomeScreen = () => {
       <View style={[styles.buttonSection, { paddingBottom: Math.max(insets.bottom, 24) }]}>
         <TouchableOpacity 
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('PhoneEntry')}
+          onPress={() => navigation.navigate('EmailEntry')}
         >
-          <Text style={styles.primaryButtonText}>Create an Account</Text>
+          <Text style={styles.primaryButtonText}>Create your account</Text>
           <Feather name="arrow-right" size={18} color={COLORS.white} style={{ marginLeft: 8 }} />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.ghostButton}
-          onPress={() => navigation.navigate('Login')} 
-        >
-          <Text style={styles.ghostButtonText}>Log In</Text>
         </TouchableOpacity>
       </View>
     </View>

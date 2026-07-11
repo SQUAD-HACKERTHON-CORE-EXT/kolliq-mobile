@@ -57,7 +57,7 @@ export default function OnboardingScreen({ navigation, route }: any) {
 
           <Text style={styles.successTitle}>You are all set, {firstName || 'Chidi'}!</Text>
           <Text style={styles.successSubtitle}>
-            Your Kolliq profile is live and your Squad virtual wallet has been created. You can now start {role === 'employer' ? 'hiring' : 'earning'}.
+            Your Kolliq profile is live and your secure virtual wallet has been created. You can now start {role === 'employer' ? 'hiring' : 'earning'}.
           </Text>
 
           <View style={styles.walletCard}>
@@ -66,7 +66,7 @@ export default function OnboardingScreen({ navigation, route }: any) {
                 <Ionicons name="wallet-outline" size={24} color={COLORS.textSecondary} />
               </View>
               <View>
-                <Text style={styles.walletLabel}>YOUR SQUAD WALLET</Text>
+                <Text style={styles.walletLabel}>YOUR SECURE WALLET</Text>
                 <Text style={styles.walletStatus}>Active</Text>
               </View>
             </View>
@@ -82,7 +82,7 @@ export default function OnboardingScreen({ navigation, route }: any) {
               </View>
               <View style={styles.walletRow}>
                 <Text style={styles.detailLabel}>Bank</Text>
-                <Text style={styles.detailValue}>Squad</Text>
+                <Text style={styles.detailValue}>Kolliq Wallet Bank</Text>
               </View>
             </View>
           </View>
@@ -131,7 +131,7 @@ export default function OnboardingScreen({ navigation, route }: any) {
             <Text style={styles.title}>{getRoleTitle()}</Text>
             <Text style={styles.subtitle}>
               {role === 'jobseeker' && 'Employers will see this information when you apply for gigs. Make it count.'}
-              {role === 'trader' && 'This information helps us create your Squad virtual account to receive payments.'}
+              {role === 'trader' && 'This information helps us create your secure virtual wallet to receive payments.'}
               {role === 'employer' && 'Workers will see this information when you post jobs.'}
             </Text>
           </View>
